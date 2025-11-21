@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { AccordionSection } from "./AccordionSection";
 
-export const RightPanel = ({ serverRecord, setServerRecord }) => {
+export const RightPanel = ({serverRecord, onClear, copiedField, copyToClipboard }) => {
   const [openSection, setOpenSection] = useState("loginHash");
-  const [copiedField, setCopiedField] = useState(null);
 
   const handleSectionToggle = (sectionId) => {
     setOpenSection(openSection === sectionId ? null : sectionId);
@@ -30,17 +29,7 @@ export const RightPanel = ({ serverRecord, setServerRecord }) => {
     }
   };
 
-  const copyToClipboard = async (text, fieldName) => {
-    if (!text) return;
 
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedField(fieldName);
-      setTimeout(() => setCopiedField(null), 2000);
-    } catch (err) {
-      console.error("Failed to copy: ", err);
-    }
-  };
 
   const CopyButton = ({ text, fieldName }) => (
     <button
@@ -55,7 +44,7 @@ export const RightPanel = ({ serverRecord, setServerRecord }) => {
   return (
     <div className="w-[35%] bg-white border border-gray-200 rounded-xl p-6 shadow-lg">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-800">Server Response</h2>
+        <h2 className="text-xl font-bold text-gray-800">Server Storage</h2>
         <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
           {serverRecord ? "Stored" : "Empty"}
         </span>
@@ -134,7 +123,7 @@ export const RightPanel = ({ serverRecord, setServerRecord }) => {
                   fieldName="encryptedPrivateKey"
                 />
               </div>
-              <code className="text-xs break-all font-mono block bg-white p-2 rounded border">
+              <code className="text-xs break-all max-h-40 overflow-auto font-mono block bg-white p-2 rounded border">
                 {serverRecord?.encryptedPrivateKey ||
                   "No encrypted private key"}
               </code>
@@ -243,10 +232,7 @@ export const RightPanel = ({ serverRecord, setServerRecord }) => {
           </button> */}
           <button
             className="flex-1 bg-red-100 text-red-700 py-2 rounded-lg font-medium text-sm transition-all hover:bg-red-200 hover:shadow-sm"
-            onClick={() => {
-              localStorage.removeItem("production-users");
-              setServerRecord(null);
-            }}
+            onClick={onClear}
           >
             Clear All
           </button>

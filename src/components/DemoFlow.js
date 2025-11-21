@@ -2,30 +2,25 @@ import React, { useState, useEffect } from 'react';
 import {
     generateSeedPhrase,
     performProductionSignup,
-    encryptAndStoreMessage, 
+    encryptAndStoreMessage,
     decryptMessage,
+    encryptPrivateKey,
+    getStoredEncryptionKey,
+    decryptPrivateKey,
 } from '../utils/cryptoOperations';
 import { StepProgress } from './ActivityLog';
 import { RightPanel } from './RightPanel';
 
 // Define step structure
 const STEP_STRUCTURE = {
-    GENERATE_SEED: {
-        id: 'step1',
-        title: '🌱 STEP 1: Generate Seeds',
-        description: 'Creating cryptographically secure 12-word seed phrase',
-        status: 'pending',
-        substeps: [
-            'Seeds never leaves your browser.',
-            'Ready for cryptographic operations'
-        ]
-    },
     SIGNUP: {
-        id: 'step2',
-        title: '🔐 STEP 2: Signup',
+        id: 'step1',
+        title: 'Signup Process',
         description: 'Creating your secure account with encrypted keys',
         status: 'pending',
         substeps: [
+            'Seeds never leaves your browser.',
+            'Ready for cryptographic operations',
             'Deriving cryptographic keys(Login Hash + Encryption Key) from seeds',
             'Generating PGP key pair',
             'Encrypting private key using AES-256-GCM with derived (Encryption Key)',
@@ -33,8 +28,8 @@ const STEP_STRUCTURE = {
         ]
     },
     ENCRYPT_MESSAGE: {
-        id: 'step3',
-        title: '🔒 STEP 3: Encrypt Message',
+        id: 'step2',
+        title: 'Encrypt Message',
         description: 'Encrypting your message using public key cryptography',
         status: 'pending',
         substeps: [
@@ -44,8 +39,8 @@ const STEP_STRUCTURE = {
         ]
     },
     DECRYPT_MESSAGE: {
-        id: 'step4',
-        title: '🔓 STEP 4: Decrypt Message',
+        id: 'step3',
+        title: 'Decrypt Message',
         description: 'Decrypting message using your seed-derived keys',
         status: 'pending',
         substeps: [
@@ -61,28 +56,27 @@ export default function DemoFlow() {
     const [activeTab, setActiveTab] = useState('signup');
     const [seed, setSeed] = useState('');
     const [step, setStep] = useState('idle');
+    const [decryptResult, setDecryptResult] = useState('');
+    const [copiedField, setCopiedField] = useState(null);
     const [serverRecord, setServerRecord] = useState(null);
     const [messageInput, setMessageInput] = useState('');
     const [decryptedMessage, setDecryptedMessage] = useState(null);
+    const [showTemporarySeed, setShowTemporarySeed] = useState(false);
+    const [customEncryptedMessage, setCustomEncryptedMessage] = useState('');
 
-    // New structured state for steps
     const [steps, setSteps] = useState({
-        step1: { ...STEP_STRUCTURE.GENERATE_SEED, status: 'pending' },
-        step2: { ...STEP_STRUCTURE.SIGNUP, status: 'pending' },
-        step3: { ...STEP_STRUCTURE.ENCRYPT_MESSAGE, status: 'pending' },
-        step4: { ...STEP_STRUCTURE.DECRYPT_MESSAGE, status: 'pending' }
+        step1: { ...STEP_STRUCTURE.SIGNUP, status: 'pending' },
+        step2: { ...STEP_STRUCTURE.ENCRYPT_MESSAGE, status: 'pending' },
+        step3: { ...STEP_STRUCTURE.DECRYPT_MESSAGE, status: 'pending' }
     });
 
-    // Helper function to update step status
     const updateStep = (stepId, updates) => {
         setSteps(prev => ({
             ...prev,
             [stepId]: { ...prev[stepId], ...updates }
         }));
     };
-    const [customEncryptedMessage, setCustomEncryptedMessage] = useState('');
 
-    // Helper function to mark substep as completed
     const completeSubstep = (stepId, substepIndex) => {
         setSteps(prev => {
             const step = { ...prev[stepId] };
@@ -94,7 +88,6 @@ export default function DemoFlow() {
         });
     };
 
-    // Load saved production-users (simulate server storage)
     useEffect(() => {
         try {
             const usersData = localStorage.getItem('production-users');
@@ -113,56 +106,106 @@ export default function DemoFlow() {
         }
     }, []);
 
-    async function handleGenerateSeed() {
-        updateStep('step1', { status: 'active' });
 
-        const s = await generateSeedPhrase();
-        setSeed(s);
-        setStep('generated');
-        updateStep('step1', {
-            status: 'completed',
-            completedSubsteps: [0, 1] 
+    const copyToClipboard = async (text, fieldName) => {
+        if (!text) return;
+
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopiedField(fieldName);
+            setTimeout(() => setCopiedField(null), 800);
+        } catch (err) {
+            console.error("Failed to copy: ", err);
+        }
+    };
+
+    const completeSubstepWithDelay = async (stepId, substepIndex, delay = 1500) => {
+        await new Promise(resolve => setTimeout(resolve, delay));
+        setSteps(prev => {
+            const step = { ...prev[stepId] };
+            if (!step.completedSubsteps) step.completedSubsteps = [];
+            if (!step.completedSubsteps.includes(substepIndex)) {
+                step.completedSubsteps = [...step.completedSubsteps, substepIndex];
+            }
+            return { ...prev, [stepId]: step };
         });
-    }
+    };
+
 
     async function handleSignupAuto() {
         setStep('signup');
 
-        updateStep('step2', { status: 'active' });
         try {
-            completeSubstep('step2', 0);
+            // STEP 1: Generate Seed
+            updateStep('step1', { status: 'active' });
+            const newSeed = await generateSeedPhrase();
+            setSeed(newSeed);
+            await completeSubstepWithDelay('step1', 0, 800);
+            await completeSubstepWithDelay('step1', 1, 800);
+
+            setShowTemporarySeed(true);
+
+            // STEP 2: Signup Process
+            await completeSubstepWithDelay('step1', 2, 1200);
+            await completeSubstepWithDelay('step1', 3, 1500);
+            await completeSubstepWithDelay('step1', 4, 1200);
 
             const results = await performProductionSignup();
-
-            completeSubstep('step2', 1);
-            completeSubstep('step2', 2);
             setServerRecord(results.serverRecord);
-            setStep('ready');
-            completeSubstep('step2', 3);
-            updateStep('step2', { status: 'completed' });
+
+            await completeSubstepWithDelay('step1', 5, 1000);
+
+            updateStep('step1', { status: 'completed' });
+            setStep('account-created');
+            setTimeout(() => {
+                setShowTemporarySeed(false);
+            }, 1000);
 
         } catch (err) {
             console.error(err);
-            updateStep('step2', { status: 'error' });
+            updateStep('step1', { status: 'error' });
             alert('Signup failed: ' + err.message);
-            setStep('generated');
+            setStep('');
+            setShowTemporarySeed(false);
         }
     }
 
     async function handleEncryptAndStore() {
-        updateStep('step3', { status: 'active' });
+        updateStep('step2', { status: 'active' });
 
         try {
-            completeSubstep('step3', 0);
+            await completeSubstepWithDelay('step2', 0, 800);
 
             const pub = serverRecord.publicKey;
             const result = await encryptAndStoreMessage(messageInput, pub, serverRecord.loginHash);
-            completeSubstep('step3', 1);
+            await completeSubstepWithDelay('step2', 1, 1000);
 
             setServerRecord(result.storageResult.user);
-            completeSubstep('step3', 2);
-            updateStep('step3', { status: 'completed' });
+            await completeSubstepWithDelay('step2', 2, 1000);
+            updateStep('step2', { status: 'completed' });
             setMessageInput('');
+
+        } catch (err) {
+            console.error(err);
+            updateStep('step2', { status: 'error' });
+        }
+    }
+
+    async function handleDecryptCustomMessage() {
+        setDecryptedMessage(null);
+        updateStep('step3', { status: 'active' });
+
+        try {
+            await completeSubstepWithDelay('step3', 0, 800);
+
+            const decrypted = await decryptMessage(customEncryptedMessage.trim());
+
+            await completeSubstepWithDelay('step3', 1, 1000);
+            setDecryptedMessage(decrypted);
+
+            await completeSubstepWithDelay('step3', 2, 1000);
+            updateStep('step3', { status: 'completed' });
+            await completeSubstepWithDelay('step3', 3, 500);
 
         } catch (err) {
             console.error(err);
@@ -170,36 +213,28 @@ export default function DemoFlow() {
         }
     }
 
-    // Option 2: Decrypt any message (manual input)
-    async function handleDecryptCustomMessage() {
-        setDecryptedMessage(null);
-        updateStep('step4', { status: 'active' });
-
+    async function handleDecryptPrivateKey() {
+        const encryptionKey = await getStoredEncryptionKey();
         try {
-            completeSubstep('step4', 0);
-
-            const decrypted = await decryptMessage(customEncryptedMessage.trim());
-
-            completeSubstep('step4', 1);
-            setDecryptedMessage(decrypted);
-
-            completeSubstep('step4', 2);
-            updateStep('step4', { status: 'completed' });
-            completeSubstep('step4', 3);
-             
-        } catch (err) {
-            console.error(err);
-            updateStep('step4', { status: 'error' });
+            const privateKey = await decryptPrivateKey(serverRecord.encryptedPrivateKey,
+                serverRecord.encryptedPrivateKeyIV,
+                serverRecord.encryptedPrivateKeyTag,
+                encryptionKey)
+            setDecryptResult(privateKey);
+        } catch (error) {
+            console.error('Decryption failed:', error);
+            setDecryptResult('Decryption failed. Please check your seed phrase and try again.');
         }
+
+
     }
 
     // Reset all steps
     const resetAllSteps = () => {
         setSteps({
-            step1: { ...STEP_STRUCTURE.GENERATE_SEED, status: 'pending' },
-            step2: { ...STEP_STRUCTURE.SIGNUP, status: 'pending' },
-            step3: { ...STEP_STRUCTURE.ENCRYPT_MESSAGE, status: 'pending' },
-            step4: { ...STEP_STRUCTURE.DECRYPT_MESSAGE, status: 'pending' }
+            step1: { ...STEP_STRUCTURE.SIGNUP, status: 'pending' },
+            step2: { ...STEP_STRUCTURE.ENCRYPT_MESSAGE, status: 'pending' },
+            step3: { ...STEP_STRUCTURE.DECRYPT_MESSAGE, status: 'pending' }
         });
     };
 
@@ -209,7 +244,7 @@ export default function DemoFlow() {
             {/* Left Panel - Actions */}
             <div className="w-[35%] bg-white border border-gray-200 rounded-xl p-6 shadow-lg">
                 <h1 className="flex items-center gap-3 text-2xl font-bold text-gray-800 mb-6">
-                 Zero-Knowledge Demo
+                    Zero-Knowledge Demo
                 </h1>
 
                 {/* Toggle Buttons */}
@@ -243,51 +278,94 @@ export default function DemoFlow() {
                 {/* Signup Flow Section */}
                 <div className={`transition-all duration-300 ${activeTab === 'signup' ? 'block' : 'hidden'
                     }`}>
-                    <div className="space-y-4">
+                    <div className="space-y-6">
+                        {/* Step 1: Generate Seed */}
                         <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                             <h3 className="font-semibold text-blue-800 mb-2">
-                                Step 1: Generate Seed
+                                Sign up for Secure Account
                             </h3>
                             <p className="text-blue-700 text-sm mb-3">
-                                Create a secure seed phrase that never leaves your device. Used to derive all cryptographic keys.
-                            </p>
-                            <button
-                                className="w-full mt-3 bg-blue-600 text-white py-3 rounded-lg font-semibold text-sm transition-all hover:bg-blue-700 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
-                                onClick={handleGenerateSeed}
-                                disabled={!!seed}
-                            >
-                                {seed ? 'Seed Generated' : 'Generate Seed'}
-                            </button>
-                        </div>
-
-                        {seed && (
-                            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                                <h4 className="font-semibold text-green-800 mb-3">Your Seed Phrase</h4>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {seed.split(' ').map((w, i) => (
-                                        <div key={i} className="bg-white border border-green-200 p-2 rounded text-sm text-center font-medium text-gray-700">
-                                            <span className="text-xs text-gray-500">{i + 1}.</span> {w}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-                            <h3 className="font-semibold text-purple-800 mb-2">
-                                Step 2: Signup
-                            </h3>
-                            <p className="text-purple-700 text-sm mb-3">
                                 Create your account. Server stores only encrypted data - no access to your keys or seed.
                             </p>
                             <button
-                                className="w-full mt-3 bg-purple-600 text-white py-3 rounded-lg font-semibold text-sm transition-all hover:bg-purple-700 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="w-full mt-1 bg-blue-600 text-white py-3 rounded-lg font-semibold text-sm transition-all hover:bg-blue-700 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 onClick={handleSignupAuto}
-                                disabled={!seed || step === 'signup' || step === 'ready'}
+                                disabled={step === 'signup' || step === 'account-created'}
                             >
-                                {step === 'signup' ? 'Signing up...' : 'Run Signup'}
+                                {step === 'signup' ? (
+                                    <>
+                                        <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Processing...
+                                    </>
+                                ) : step === 'account-created' ? (
+                                    'Account Created ✅'
+                                ) : (
+                                    'Run Signup Flow'
+                                )}
                             </button>
+
+                            {/* Temporary Seed Display */}
+                            {showTemporarySeed && (
+                                <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200 animate-pulse">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h4 className="font-semibold text-green-800 text-sm">Your Seed Phrase (Save This!)</h4>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-1 mb-2">
+                                        {seed.split(' ').map((w, i) => (
+                                            <div key={i} className="bg-white border border-green-200 p-1 rounded text-xs text-center font-medium text-gray-700">
+                                                <span className="text-xs text-gray-500">{i + 1}.</span> {w}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-green-600 text-center">
+                                        ⚠️ This seed never leaves your device. Save it securely for decryption!
+                                    </p>
+                                </div>
+                            )}
                         </div>
+
+                        {/* Decryption Field - Shows after signup completes */}
+                        {step === 'account-created' && (
+                            <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                                <h3 className="font-semibold text-orange-800 mb-3">
+                                    Verify Your Keys
+                                </h3>
+                                <p className="text-orange-700 text-sm mb-3">
+                                    Enter your seed phrase to verify you can decrypt your private key
+                                </p>
+
+                                <div className="space-y-3">
+                                    <button
+                                        onClick={handleDecryptPrivateKey}
+                                        className="w-full bg-orange-600 text-white py-2 rounded-lg font-semibold text-sm transition-all hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Verify & Decrypt Private Key
+                                    </button>
+
+                                    {decryptResult && (
+                                        <div
+                                            className={`relative p-3 py-4 max-h-40 overflow-auto rounded-lg text-[12px] ${decryptResult.includes('-----')
+                                                ? 'text-black font-mono bg-white border border-green-200'
+                                                : 'bg-red-100 text-red-800 border border-red-200'
+                                                }`}
+                                        >
+                                            <button
+                                                onClick={() => copyToClipboard(decryptResult, "privateKey")}
+                                                className="absolute top-2 right-2 px-2 py-1 text-xs font-[700] bg-gray-600 text-white  rounded"
+                                            >
+                                                {copiedField === "privateKey" ? "Copied!" : "Copy"}
+                                            </button>
+
+                                            {decryptResult}
+                                        </div>
+                                    )}
+                                </div>
+
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -347,9 +425,9 @@ export default function DemoFlow() {
                                 >
                                     Decrypt Message
                                 </button>
-                                <div className="p-3 mt-3 bg-white rounded border border-gray-200">
+                                {decryptedMessage && <div className="p-3 mt-3 bg-white rounded border border-gray-200">
                                     <pre className="text-sm whitespace-pre-wrap">{decryptedMessage}</pre>
-                                </div>
+                                </div>}
                             </div>
                         </div>
                     </div>
@@ -367,7 +445,10 @@ export default function DemoFlow() {
             </div>
 
             {/* Right Panel - Server Storage */}
-            <RightPanel serverRecord={serverRecord} setServerRecord={setServerRecord} />
+            <RightPanel onClear={() => { localStorage.removeItem("production-users"); resetAllSteps(); setStep('idel'); setServerRecord(null); }}
+                serverRecord={serverRecord}
+                copiedField={copiedField}
+                copyToClipboard={copyToClipboard} />
         </div>
     );
 }

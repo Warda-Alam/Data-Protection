@@ -1,6 +1,7 @@
 // src/utils/cryptoOperations.js
-import * as openpgp from 'openpgp';
 import bcrypt from 'bcryptjs';
+const openpgp = require('openpgp');
+
 
 // 1. Generate Secure Seed Phrase (BIP39-like)
 export async function generateSeedPhrase() {
@@ -28,13 +29,11 @@ export async function deriveLoginHash(seedPhrase) {
     return { loginHash }; // returns salt + hash
 }
 
+
 // 3. Derive Encryption Key (using proper KDF)
-// 3. Derive Encryption Key (using proper KDF) - FIXED
 export async function deriveEncryptionKey(seedPhrase) {
     const encoder = new TextEncoder();
     const seedBuffer = encoder.encode(seedPhrase);
-
-    // Always use a random salt when email is not available
     const saltBuffer = crypto.getRandomValues(new Uint8Array(16));
 
     // Import raw seed
@@ -56,21 +55,23 @@ export async function deriveEncryptionKey(seedPhrase) {
         },
         keyMaterial,
         { name: 'AES-GCM', length: 256 },
-        false,
+        true,
         ['encrypt', 'decrypt']
     );
 
-    // Return both key and salt - but store salt for later use!
+    const exportedKey = await crypto.subtle.exportKey("raw", encryptionKey);
+    const keyBase64 = arrayBufferToBase64(exportedKey);
+
     return {
         encryptionKey,
-        salt: arrayBufferToBase64(saltBuffer) // Convert to base64 for storage
+        encryptionBase64: keyBase64,
+        salt: arrayBufferToBase64(saltBuffer)
     };
 }
 
 
 // 4. Generate PGP Key Pair (REAL PGP - Production Ready)
 export async function generateKeyPair(seedPhrase) {
-    // Derive a consistent user ID from the seed phrase
     const seedBuffer = new TextEncoder().encode(seedPhrase);
     const hashBuffer = await crypto.subtle.digest('SHA-256', seedBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
@@ -80,11 +81,9 @@ export async function generateKeyPair(seedPhrase) {
     const userName = `ZK User ${hashHex.substring(0, 8)}`;
 
     const { privateKey, publicKey } = await openpgp.generateKey({
-        type: 'ecc',
-        curve: 'curve25519',
-        userIDs: [{ name: userName, email: userId }],
-        passphrase: '',
-        format: 'armored'
+        type: 'rsa',
+        rsaBits: 2048,
+        userIDs: [{ name: 'Demo User' }]
     });
 
     return { privateKey, publicKey };
@@ -95,7 +94,6 @@ export async function encryptPrivateKey(privateKey, encryptionKey) {
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const privateKeyBuffer = new TextEncoder().encode(privateKey);
 
-    // The encrypt function automatically handles authentication tag
     const encrypted = await crypto.subtle.encrypt(
         {
             name: 'AES-GCM',
@@ -105,31 +103,40 @@ export async function encryptPrivateKey(privateKey, encryptionKey) {
         privateKeyBuffer
     );
 
-    // For AES-GCM, the tag is appended automatically
+    // Extract the tag (typically 16 bytes for AES-GCM)
+    const tagLength = 16;
+    const encryptedData = encrypted.slice(0, encrypted.byteLength - tagLength);
+    const tag = encrypted.slice(encrypted.byteLength - tagLength);
+
     return {
-        encryptedPrivateKey: arrayBufferToBase64(encrypted), // Store entire encrypted data
-        iv: arrayBufferToBase64(iv)
+        encryptedPrivateKey: arrayBufferToBase64(encryptedData),
+        iv: arrayBufferToBase64(iv),
+        tag: arrayBufferToBase64(tag)
     };
 }
 
-// Fixed decrypt function
-async function decryptPrivateKey(encryptedPrivateKey, ivBase64, encryptionKey) {
-    const encryptedBuffer = base64ToArrayBuffer(encryptedPrivateKey);
-    const iv = base64ToArrayBuffer(ivBase64);
+
+export async function decryptPrivateKey(encryptedData, iv, tag, encryptionKey) {
+
+    const encryptedBuffer = base64ToArrayBuffer(encryptedData);
+    const tagBuffer = base64ToArrayBuffer(tag);
+    const combined = new Uint8Array(encryptedBuffer.byteLength + tagBuffer.byteLength);
+    combined.set(new Uint8Array(encryptedBuffer), 0);
+    combined.set(new Uint8Array(tagBuffer), encryptedBuffer.byteLength);
 
     const decrypted = await crypto.subtle.decrypt(
         {
             name: 'AES-GCM',
-            iv: iv
+            iv: base64ToArrayBuffer(iv)
         },
         encryptionKey,
-        encryptedBuffer
+        combined
     );
 
     return new TextDecoder().decode(decrypted);
 }
 
-// 6. Encrypt User Data with PGP (Real End-to-End Encryption)
+
 export async function encryptUserData(userData, publicKeyArmored) {
     const publicKey = await openpgp.readKey({ armoredKey: publicKeyArmored });
 
@@ -142,11 +149,9 @@ export async function encryptUserData(userData, publicKeyArmored) {
 }
 
 // 7. Complete Production Signup Flow
-// Store seed phrase securely in localStorage
-export async function storeSeedPhrase(seedPhrase) {
+export async function storeEncryptionKey(key) {
     try {
-        // You might want to add additional security here in production
-        localStorage.setItem('user-seed-phrase', seedPhrase);
+        localStorage.setItem('encryption-key', key);
         return { success: true };
     } catch (error) {
         console.error('Seed storage error:', error);
@@ -154,19 +159,36 @@ export async function storeSeedPhrase(seedPhrase) {
     }
 }
 
-// Retrieve seed phrase from localStorage
-export function getStoredSeedPhrase() {
+export async function importAesKeyFromBase64(base64Key) {
+    const rawKey = base64ToArrayBuffer(base64Key);
+
+    return crypto.subtle.importKey(
+        "raw",
+        rawKey,
+        { name: "AES-GCM" },
+        false,                 // not extractable
+        ["encrypt", "decrypt"] // usage
+    );
+}
+
+
+export async function getStoredEncryptionKey() {
     try {
-        const seedPhrase = localStorage.getItem('user-seed-phrase');
-        if (!seedPhrase) {
-            throw new Error('No seed phrase found in storage');
+        const base64Key = localStorage.getItem('encryption-key');
+        if (!base64Key) {
+            throw new Error('No encryption key found in storage');
         }
-        return seedPhrase;
+
+        // Convert Base64 → CryptoKey
+        const cryptoKey = await importAesKeyFromBase64(base64Key);
+        return cryptoKey;
+
     } catch (error) {
-        console.error('Seed retrieval error:', error);
-        throw new Error('Failed to retrieve seed phrase');
+        console.error('Encryption key retrieval error:', error);
+        throw new Error('Failed to load encryption key');
     }
 }
+
 
 // Clear stored seed phrase
 export function clearStoredSeedPhrase() {
@@ -180,35 +202,27 @@ export async function performProductionSignup() {
         const seedPhrase = await generateSeedPhrase();
 
         // Store the seed phrase automatically
-        await storeSeedPhrase(seedPhrase);
 
-        // Step 2: Derive Login Hash
         const { loginHash } = await deriveLoginHash(seedPhrase);
-
-        // Step 3: Derive Encryption Key
-        const { encryptionKey, salt } = await deriveEncryptionKey(seedPhrase);
-
-        // Step 4: Generate REAL PGP Key Pair
+        const { encryptionKey,encryptionBase64, salt } = await deriveEncryptionKey(seedPhrase);
         const { privateKey, publicKey } = await generateKeyPair(seedPhrase);
-
-        // Step 5: Encrypt Private Key
         const encryptedPrivate = await encryptPrivateKey(privateKey, encryptionKey);
-
+        await storeEncryptionKey(encryptionBase64);
         // Production Server Record
         const serverRecord = {
             loginHash,
             publicKey,
             encryptedPrivateKey: encryptedPrivate.encryptedPrivateKey,
             encryptedPrivateKeyIV: encryptedPrivate.iv,
+            encryptedPrivateKeyTag: encryptedPrivate.tag,
             encSalt: salt,
             createdAt: new Date().toISOString(),
-            version: '1.0'
         };
 
         await saveToProductionStorage(serverRecord);
 
         return {
-            seedPhrase, // Also returned for immediate display if needed
+            seedPhrase,
             serverRecord,
             technicalDetails: {
                 crypto: {
@@ -269,7 +283,7 @@ export async function performProductionLogin(seedPhrase) {
         const privateKey = await decryptPrivateKey(
             user.encryptedPrivateKey,
             user.encryptedPrivateKeyIV,
-            user.encryptedPrivateKeyTag, // Include the tag
+            user.encryptedPrivateKeyTag,
             encryptionKey
         );
 
@@ -415,7 +429,7 @@ export async function encryptAndStoreMessage(message, publicKeyArmored, userLogi
 
 export async function decryptMessage(encryptedMessageArmored) {
     try {
-        const seedPhrase = getStoredSeedPhrase();
+        const encryptionKey = await getStoredEncryptionKey();
         const users = JSON.parse(localStorage.getItem('production-users') || '[]');
 
         if (users.length === 0) {
@@ -424,10 +438,10 @@ export async function decryptMessage(encryptedMessageArmored) {
 
         const user = users[users.length - 1];
 
-        const { encryptionKey } = await deriveEncryptionKeyWithSalt(seedPhrase, user.encSalt);
         const privateKey = await decryptPrivateKey(
             user.encryptedPrivateKey,
             user.encryptedPrivateKeyIV,
+            user.encryptedPrivateKeyTag,
             encryptionKey
         );
 
