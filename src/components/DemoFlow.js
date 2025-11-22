@@ -445,7 +445,16 @@ export default function DemoFlow() {
             </div>
 
             {/* Right Panel - Server Storage */}
-            <RightPanel onClear={() => { localStorage.removeItem("production-users"); resetAllSteps(); setStep('idel'); setServerRecord(null); }}
+            <RightPanel onClear={() => {
+                localStorage.removeItem("production-users");
+                resetAllSteps();
+                setStep('idel');
+                setServerRecord(null);
+                setDecryptResult('');
+                setMessageInput('');
+                setDecryptedMessage(null);
+                setCustomEncryptedMessage('')
+            }}
                 serverRecord={serverRecord}
                 copiedField={copiedField}
                 copyToClipboard={copyToClipboard} />

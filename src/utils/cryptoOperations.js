@@ -200,9 +200,6 @@ export async function performProductionSignup() {
     try {
         // Step 1: Generate Secure Seed
         const seedPhrase = await generateSeedPhrase();
-
-        // Store the seed phrase automatically
-
         const { loginHash } = await deriveLoginHash(seedPhrase);
         const { encryptionKey,encryptionBase64, salt } = await deriveEncryptionKey(seedPhrase);
         const { privateKey, publicKey } = await generateKeyPair(seedPhrase);
