@@ -389,10 +389,10 @@ export async function encryptAndStoreMessage(message, publicKeyArmored, userLogi
     }
 }
 
-export async function decryptMessage(encryptedMessageArmored) {
+export async function decryptMessage(user,  encryptedMessageArmored) {
     try {
         const encryptionKey = await getStoredEncryptionKey();
-        const user = JSON.parse(localStorage.getItem('active-user') || '[]')
+
 
         const privateKey = await decryptPrivateKey(
             user.encryptedPrivateKey,

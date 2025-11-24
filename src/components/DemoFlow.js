@@ -233,7 +233,7 @@ export default function DemoFlow() {
         try {
             await completeSubstepWithDelay('step3', 0, 800);
 
-            const decrypted = await decryptMessage(customEncryptedMessage.trim());
+            const decrypted = await decryptMessage(serverRecord, customEncryptedMessage.trim());
 
             await completeSubstepWithDelay('step3', 1, 1000);
             setDecryptedMessage(decrypted);
