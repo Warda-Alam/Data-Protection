@@ -7,6 +7,7 @@ import {
     encryptPrivateKey,
     getStoredEncryptionKey,
     decryptPrivateKey,
+    performLogin,
 } from '../utils/cryptoOperations';
 import { StepProgress } from './ActivityLog';
 import { RightPanel } from './RightPanel';
@@ -61,8 +62,49 @@ export default function DemoFlow() {
     const [serverRecord, setServerRecord] = useState(null);
     const [messageInput, setMessageInput] = useState('');
     const [decryptedMessage, setDecryptedMessage] = useState(null);
-    const [showTemporarySeed, setShowTemporarySeed] = useState(false);
     const [customEncryptedMessage, setCustomEncryptedMessage] = useState('');
+    const [loginSeedInput, setLoginSeedInput] = useState('');
+    const [loginStatus, setLoginStatus] = useState(''); // 'logging-in', 'success', 'error'
+    const [loginResult, setLoginResult] = useState(null);
+
+    const handleLogin = async () => {
+        if (!loginSeedInput.trim()) {
+            setLoginResult({
+                success: false,
+                message: 'Please enter your seed phrase'
+            });
+            return;
+        }
+
+        setLoginStatus('logging-in');
+        setLoginResult(null);
+
+        try {
+            // await new Promise(resolve => setTimeout(resolve, 1500));
+            const isValid = await performLogin(loginSeedInput);
+
+            if (isValid) {
+                setLoginStatus('success');
+                setLoginResult({
+                    success: true,
+                    message: 'Login successful!',
+                    details: 'Your seed phrase was used to derive keys and verify your identity without exposing the seed to the server.'
+                });
+            } else {
+                setLoginStatus('error');
+                setLoginResult({
+                    success: false,
+                    message: 'Invalid seed phrase'
+                });
+            }
+        } catch (error) {
+            setLoginStatus('error');
+            setLoginResult({
+                success: false,
+                message: 'Login failed: ' + error.message
+            });
+        }
+    };
 
     const [steps, setSteps] = useState({
         step1: { ...STEP_STRUCTURE.SIGNUP, status: 'pending' },
@@ -134,7 +176,9 @@ export default function DemoFlow() {
 
     async function handleSignupAuto() {
         setStep('signup');
-
+        setSteps({
+            step1: { ...STEP_STRUCTURE.SIGNUP, status: 'pending' },
+        });
         try {
             // STEP 1: Generate Seed
             updateStep('step1', { status: 'active' });
@@ -143,30 +187,23 @@ export default function DemoFlow() {
             await completeSubstepWithDelay('step1', 0, 800);
             await completeSubstepWithDelay('step1', 1, 800);
 
-            setShowTemporarySeed(true);
-
             // STEP 2: Signup Process
             await completeSubstepWithDelay('step1', 2, 1200);
             await completeSubstepWithDelay('step1', 3, 1500);
             await completeSubstepWithDelay('step1', 4, 1200);
 
-            const results = await performProductionSignup();
+            const results = await performProductionSignup(newSeed);
             setServerRecord(results.serverRecord);
 
             await completeSubstepWithDelay('step1', 5, 1000);
 
             updateStep('step1', { status: 'completed' });
             setStep('account-created');
-            setTimeout(() => {
-                setShowTemporarySeed(false);
-            }, 1000);
 
         } catch (err) {
-            console.error(err);
             updateStep('step1', { status: 'error' });
             alert('Signup failed: ' + err.message);
             setStep('');
-            setShowTemporarySeed(false);
         }
     }
 
@@ -239,6 +276,21 @@ export default function DemoFlow() {
     };
 
 
+    const handleLogout = () => {
+        localStorage.removeItem("production-users");
+        resetAllSteps();
+        setStep('idel');
+        setServerRecord(null);
+        setDecryptResult('');
+        setMessageInput('');
+        setDecryptedMessage(null);
+        setCustomEncryptedMessage('')
+        setSeed('');
+        setLoginResult(null);
+        setLoginSeedInput('');
+        setLoginStatus('');
+    }
+
     return (
         <div className="flex gap-4 px-6 py-8 bg-gray-50 min-h-screen w-full">
             {/* Left Panel - Actions */}
@@ -276,9 +328,8 @@ export default function DemoFlow() {
                 </div>
 
                 {/* Signup Flow Section */}
-                <div className={`transition-all duration-300 ${activeTab === 'signup' ? 'block' : 'hidden'
-                    }`}>
-                    <div className="space-y-6">
+                <div className={`transition-all duration-300 ${activeTab === 'signup' ? 'block' : 'hidden'}`}>
+                    <div className="space-y-4">
                         {/* Step 1: Generate Seed */}
                         <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                             <h3 className="font-semibold text-blue-800 mb-2">
@@ -290,7 +341,7 @@ export default function DemoFlow() {
                             <button
                                 className="w-full mt-1 bg-blue-600 text-white py-3 rounded-lg font-semibold text-sm transition-all hover:bg-blue-700 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 onClick={handleSignupAuto}
-                                disabled={step === 'signup' || step === 'account-created'}
+                                disabled={step === 'signup'}
                             >
                                 {step === 'signup' ? (
                                     <>
@@ -301,22 +352,28 @@ export default function DemoFlow() {
                                         Processing...
                                     </>
                                 ) : step === 'account-created' ? (
-                                    'Account Created ✅'
+                                    'Recreate Account'
                                 ) : (
                                     'Run Signup Flow'
                                 )}
                             </button>
 
                             {/* Temporary Seed Display */}
-                            {showTemporarySeed && (
-                                <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200 animate-pulse">
+                            {seed && (
+                                <div className={`mt-4 p-3 bg-green-50 rounded-lg border border-green-200 ${step === 'signup' ? "animate-pulse" : ""} `}>
                                     <div className="flex items-center justify-between mb-2">
                                         <h4 className="font-semibold text-green-800 text-sm">Your Seed Phrase (Save This!)</h4>
+                                        <button
+                                            onClick={() => copyToClipboard(seed, "seeds")}
+                                            className="px-2 py-1 text-xs font-[700] bg-teal-600 hover:bg-teal-700 text-white rounded"
+                                        >
+                                            {copiedField === "seeds" ? "Copied!" : "Copy"}
+                                        </button>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-1 mb-2">
+                                    <div className="grid grid-cols-4 gap-1 mb-2">
                                         {seed.split(' ').map((w, i) => (
-                                            <div key={i} className="bg-white border border-green-200 p-1 rounded text-xs text-center font-medium text-gray-700">
-                                                <span className="text-xs text-gray-500">{i + 1}.</span> {w}
+                                            <div key={i} className="bg-white uppercase border border-green-200 p-1 rounded text-xs text-center font-medium text-gray-700">
+                                                {w}
                                             </div>
                                         ))}
                                     </div>
@@ -327,22 +384,76 @@ export default function DemoFlow() {
                             )}
                         </div>
 
-                        {/* Decryption Field - Shows after signup completes */}
-                        {step === 'account-created' && (
-                            <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-                                <h3 className="font-semibold text-orange-800 mb-3">
-                                    Verify Your Keys
-                                </h3>
-                                <p className="text-orange-700 text-sm mb-3">
-                                    Enter your seed phrase to verify you can decrypt your private key
-                                </p>
+                        {/* Login Field - Shows after signup completes */}
 
+                        <div className="space-y-4">
+
+                            {/* Login Field */}
+                            <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                                <h3 className="font-semibold text-purple-800 mb-3">
+                                    Login with Your Seed
+                                </h3>
+                                <div className="space-y-3">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-purple-700">
+                                            Enter Your Seed Phrase:
+                                        </label>
+                                        <textarea
+                                            value={loginSeedInput}
+                                            onChange={(e) => setLoginSeedInput(e.target.value)}
+                                            placeholder="Paste your 16-word seed phrase here..."
+                                            className="w-full p-3 border border-purple-300 rounded-lg text-sm resize-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                                            rows="3"
+                                        />
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={handleLogin}
+                                            disabled={!loginSeedInput.trim() || loginStatus === 'logging-in'}
+                                            className="flex-1 bg-purple-600 text-white py-2 rounded-lg font-semibold text-sm transition-all hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                        >
+                                            {loginStatus === 'logging-in' ? (
+                                                <>
+                                                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Logging in...
+                                                </>
+                                            ) : (
+                                                'Login to Account'
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    {loginResult && (
+                                        <div
+                                            className={`p-3 rounded-lg text-sm border ${loginResult.success
+                                                ? 'bg-green-100 text-green-800 border-green-200'
+                                                : 'bg-red-100 text-red-800 border-red-200'
+                                                }`}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                {loginResult.success ? '✅' : '❌'}
+                                                <span className="font-medium">{loginResult.message}</span>
+                                            </div>
+                                            {loginResult.details && (
+                                                <p className="mt-2 text-xs opacity-75">{loginResult.details}</p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Decryption Field */}
+                            {(step === 'account-created' || loginStatus === 'success') && (<div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
                                 <div className="space-y-3">
                                     <button
                                         onClick={handleDecryptPrivateKey}
                                         className="w-full bg-orange-600 text-white py-2 rounded-lg font-semibold text-sm transition-all hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        Verify & Decrypt Private Key
+                                        Decrypt Private Key
                                     </button>
 
                                     {decryptResult && (
@@ -354,18 +465,19 @@ export default function DemoFlow() {
                                         >
                                             <button
                                                 onClick={() => copyToClipboard(decryptResult, "privateKey")}
-                                                className="absolute top-2 right-2 px-2 py-1 text-xs font-[700] bg-gray-600 text-white  rounded"
+                                                className="absolute top-2 right-2 px-2 py-1 text-xs font-[700] bg-gray-600 text-white rounded"
                                             >
                                                 {copiedField === "privateKey" ? "Copied!" : "Copy"}
                                             </button>
-
                                             {decryptResult}
                                         </div>
                                     )}
                                 </div>
-
                             </div>
-                        )}
+                            )}
+
+                        </div>
+
                     </div>
                 </div>
 
@@ -445,16 +557,7 @@ export default function DemoFlow() {
             </div>
 
             {/* Right Panel - Server Storage */}
-            <RightPanel onClear={() => {
-                localStorage.removeItem("production-users");
-                resetAllSteps();
-                setStep('idel');
-                setServerRecord(null);
-                setDecryptResult('');
-                setMessageInput('');
-                setDecryptedMessage(null);
-                setCustomEncryptedMessage('')
-            }}
+            <RightPanel onClear={handleLogout}
                 serverRecord={serverRecord}
                 copiedField={copiedField}
                 copyToClipboard={copyToClipboard} />

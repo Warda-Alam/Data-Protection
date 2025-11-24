@@ -14,7 +14,7 @@ export async function generateSeedPhrase() {
     ];
 
     const seedWords = [];
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 16; i++) {
         const randomIndex = entropy[i] % words.length;
         seedWords.push(words[randomIndex]);
     }
@@ -196,10 +196,8 @@ export function clearStoredSeedPhrase() {
 }
 
 // Updated signup function that stores the seed
-export async function performProductionSignup() {
+export async function performProductionSignup(seedPhrase) {
     try {
-        // Step 1: Generate Secure Seed
-        const seedPhrase = await generateSeedPhrase();
         const { loginHash } = await deriveLoginHash(seedPhrase);
         const { encryptionKey,encryptionBase64, salt } = await deriveEncryptionKey(seedPhrase);
         const { privateKey, publicKey } = await generateKeyPair(seedPhrase);
@@ -241,7 +239,6 @@ export async function performProductionSignup() {
 // Fix the saveToProductionStorage function
 async function saveToProductionStorage(serverRecord) {
     try {
-        // Get existing data or initialize empty array
         const existingData = JSON.parse(localStorage.getItem('production-users') || '[]');
 
         // Ensure existingData is an array
@@ -261,22 +258,21 @@ async function saveToProductionStorage(serverRecord) {
 
 
 // 9. Login Flow (Production)
-export async function performProductionLogin(seedPhrase) {
+export async function performLogin(seedPhrase) {
     try {
-        // 1. Re-derive login hash from seed
-        const { loginHash } = await deriveLoginHash(seedPhrase);
-
-        // 2. Load all stored users
         const users = JSON.parse(localStorage.getItem('production-users') || '[]');
-
-        // 3. Find user by loginHash
-        const user = users.find(u => u.loginHash === loginHash);
-        if (!user) throw new Error('User not found');
-
-        // 4. Re-derive encryption key using stored salt - FIXED
+        let user = null;
+        for (const storedUser of users) {
+            const isValid = await bcrypt.compare(seedPhrase, storedUser.loginHash);
+            if (isValid) {
+                user = storedUser;
+                break;
+            }
+        }
+        
+        if (!user) throw new Error('User not found - invalid seed phrase');
         const { encryptionKey } = await deriveEncryptionKeyWithSalt(seedPhrase, user.encSalt);
 
-        // 5. Decrypt private key - FIXED: include tag in decryption
         const privateKey = await decryptPrivateKey(
             user.encryptedPrivateKey,
             user.encryptedPrivateKeyIV,
@@ -287,7 +283,7 @@ export async function performProductionLogin(seedPhrase) {
         return { user, privateKey };
 
     } catch (error) {
-        throw new Error(`Login failed: ${error.message}`);
+        throw new Error(`${error.message}`);
     }
 }
 
@@ -463,7 +459,7 @@ export async function decryptMessage(encryptedMessageArmored) {
 export default {
     generateSeedPhrase,
     performProductionSignup,
-    performProductionLogin,
+    performLogin,
     encryptAndStoreMessage,
     decryptMessage,
 };

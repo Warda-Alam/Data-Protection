@@ -2,8 +2,8 @@ import { useState } from "react";
 import { AccordionSection } from "./AccordionSection";
 
 export const RightPanel = ({serverRecord, onClear, copiedField, copyToClipboard }) => {
+  const isData = localStorage.getItem("production-users");
   const [openSection, setOpenSection] = useState("loginHash");
-
   const handleSectionToggle = (sectionId) => {
     setOpenSection(openSection === sectionId ? null : sectionId);
   };
@@ -230,12 +230,12 @@ export const RightPanel = ({serverRecord, onClear, copiedField, copyToClipboard 
           >
             View Storage
           </button> */}
-          <button
+       {isData &&   <button
             className="flex-1 bg-red-100 text-red-700 py-2 rounded-lg font-medium text-sm transition-all hover:bg-red-200 hover:shadow-sm"
             onClick={onClear}
           >
-            Clear All
-          </button>
+            Log Out 
+          </button>}
         </div>
       </div>
     </div>
