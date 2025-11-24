@@ -10,9 +10,104 @@ export async function generateSeedPhrase() {
     const words = [
         "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract",
         "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid",
-        // ... expand to 2048 words for production
+        "acoustic", "acquire", "across", "act", "action", "actor", "actress", "actual",
+        "adapt", "add", "addict", "address", "adjust", "admit", "adult", "advance",
+        "advice", "aerobic", "affair", "afford", "afraid", "again", "age", "agent",
+        "agree", "ahead", "aim", "air", "airport", "aisle", "alarm", "album",
+        "alcohol", "alert", "alien", "all", "alley", "allow", "almost", "alone",
+        "alpha", "already", "also", "alter", "always", "amateur", "amazing", "among",
+        "amount", "amused", "analyst", "anchor", "ancient", "anger", "angle", "angry",
+        "dial", "diamond", "diary", "dice", "diesel", "diet", "differ", "digital",
+        "dignity", "dilemma", "dinner", "dinosaur", "direct", "dirt", "disagree", "discover",
+        "disease", "dish", "dismiss", "disorder", "display", "distance", "divert", "divide",
+        "divorce", "dizzy", "doctor", "document", "dog", "doll", "dolphin", "domain",
+        "donate", "donkey", "donor", "door", "dose", "double", "dove", "draft",
+        "dragon", "drama", "drastic", "draw", "dream", "dress", "drift", "drill",
+        "drink", "drip", "drive", "drop", "drum", "dry", "duck", "dumb",
+        "dune", "during", "dust", "dutch", "duty", "dwarf", "dynamic", "eager",
+        "eagle", "early", "earn", "earth", "easily", "east", "easy", "echo",
+        "ecology", "economy", "edge", "edit", "educate", "effort", "egg", "eight",
+        "either", "elbow", "elder", "electric", "elegant", "element", "elephant", "elevator",
+        "elite", "else", "embark", "embody", "embrace", "emerge", "emotion", "employ",
+        "empower", "empty", "enable", "enact", "end", "endless", "endorse", "enemy",
+        "energy", "enforce", "engage", "engine", "enhance", "enjoy", "enlist", "enough",
+        "enrich", "enroll", "ensure", "enter", "entire", "entry", "envelope", "episode",
+        "equal", "equip", "era", "erase", "erode", "erosion", "error", "erupt",
+        "escape", "essay", "essence", "estate", "eternal", "ethics", "evidence", "evil",
+        "evoke", "evolve", "exact", "example", "exceed", "excel", "exception", "excess",
+        "exchange", "excite", "exclude", "excuse", "execute", "exercise", "exhaust", "exhibit",
+        "exile", "exist", "exit", "exotic", "expand", "expect", "expire", "explain",
+        "expose", "express", "extend", "extra", "eye", "eyebrow", "fabric", "face",
+        "faculty", "fade", "faint", "faith", "fall", "false", "fame", "family",
+        "famous", "fan", "fancy", "fantasy", "farm", "fashion", "fat", "fatal",
+        "father", "fatigue", "fault", "favorite", "feature", "february", "federal", "fee",
+        "feed", "feel", "female", "fence", "festival", "fetch", "fever", "few",
+        "fiber", "fiction", "field", "figure", "file", "film", "filter", "final",
+        "find", "fine", "finger", "finish", "fire", "firm", "first", "fiscal",
+        "jealous", "jeans", "jelly", "jewel", "job", "join", "joke", "journey",
+        "joy", "judge", "juice", "jump", "jungle", "junior", "junk", "just",
+        "kangaroo", "keen", "keep", "ketchup", "key", "kick", "kid", "kidney",
+        "kind", "kingdom", "kiss", "kit", "kitchen", "kite", "kitten", "kiwi",
+        "knee", "knife", "knock", "know", "lab", "label", "labor", "ladder",
+        "lady", "lake", "lamp", "language", "laptop", "large", "later", "latin",
+        "make", "mammal", "man", "manage", "mandate", "mango", "mansion", "manual",
+        "milk", "million", "mimic", "mind", "minimum", "minor", "minute", "miracle",
+        "mirror", "misery", "miss", "mistake", "mix", "mixed", "mixture", "mobile",
+        "nest", "net", "network", "neutral", "never", "news", "next", "nice",
+        "night", "noble", "noise", "nominee", "noodle", "normal", "north", "nose",
+        "notable", "note", "nothing", "notice", "novel", "now", "nuclear", "number",
+        "nurse", "nut", "oak", "obey", "object", "oblige", "obscure", "observe",
+        "obtain", "obvious", "occur", "ocean", "october", "odor", "off", "offer",
+        "office", "often", "oil", "okay", "old", "olive", "olympic", "omit",
+        "once", "one", "onion", "online", "only", "open", "opera", "opinion",
+        "oppose", "option", "orange", "orbit", "orchard", "order", "ordinary", "organ",
+        "orient", "original", "orphan", "ostrich", "other", "outdoor", "outer", "output",
+        "outside", "oval", "oven", "over", "own", "owner", "oxygen", "oyster",
+        "ozone", "pact", "paddle", "page", "pair", "palace", "palm", "panda",
+        "panel", "panic", "panther", "paper", "parade", "parent", "park", "parrot",
+        "party", "pass", "patch", "path", "patient", "patrol", "pattern", "pause",
+        "pave", "payment", "peace", "peanut", "pear", "peasant", "pelican", "pen",
+        "penalty", "pencil", "people", "pepper", "perfect", "permit", "person", "pet",
+        "phone", "photo", "phrase", "physical", "piano", "picnic", "picture", "piece",
+        "pig", "pigeon", "pill", "pilot", "pink", "pioneer", "pipe", "pistol",
+        "pitch", "pizza", "place", "planet", "plastic", "plate", "play", "player",
+        "race", "rack", "radar", "radio", "rail", "rain", "raise", "rally",
+        "ramp", "ranch", "random", "range", "rapid", "rare", "rate", "rather",
+        "raven", "raw", "razor", "ready", "real", "reason", "rebel", "rebuild",
+        "recall", "receive", "recipe", "record", "recycle", "reduce", "reflect", "reform",
+        "refuse", "region", "regret", "regular", "reject", "relax", "release", "relief",
+        "rely", "remain", "remember", "remind", "remove", "render", "renew", "rent",
+        "reopen", "repair", "repeat", "replace", "report", "require", "rescue", "resemble",
+        "resist", "resource", "response", "result", "retire", "retreat", "return", "reunion",
+        "reveal", "review", "reward", "rhythm", "rib", "ribbon", "rice", "rich",
+        "siren", "sister", "situate", "six", "size", "skate", "sketch", "ski",
+        "skill", "skin", "skirt", "skull", "slab", "slam", "sleep", "slender",
+        "slice", "slide", "slight", "slim", "slogan", "slot", "slow", "slush",
+        "small", "smart", "smile", "smoke", "smooth", "snack", "snake", "snap",
+        "sniff", "snow", "soap", "soccer", "social", "sock", "soda", "soft",
+        "solar", "soldier", "solid", "solution", "solve", "someone", "song", "soon",
+        "sorry", "sort", "soul", "sound", "soup", "source", "south", "space",
+        "spare", "spatial", "spawn", "speak", "special", "speed", "spell", "spend",
+        "sphere", "spice", "spider", "spike", "spin", "spirit", "split", "spoil",
+        "sponsor", "spoon", "sport", "spot", "spray", "spread", "spring", "spy",
+        "square", "squeeze", "squirrel", "stable", "stadium", "staff", "stage", "stairs",
+        "taxi", "teach", "team", "tell", "ten", "tenant", "tennis", "tent",
+        "trash", "travel", "tray", "treat", "tree", "trend", "trial", "tribe",
+        "trick", "trigger", "trim", "trip", "trophy", "trouble", "truck", "true",
+        "truly", "trumpet", "trust", "truth", "try", "tube", "tuition", "tumble",
+        "tuna", "tunnel", "turkey", "turn", "turtle", "twelve", "twenty", "twice",
+        "twin", "twist", "two", "type", "typical", "ugly", "umbrella", "unable",
+        "unaware", "uncle", "uncover", "under", "undo", "unfair", "unfold", "unhappy",
+        "uniform", "unique", "unit", "universe", "unknown", "unlock", "until", "unusual",
+        "unveil", "update", "upgrade", "uphold", "upon", "upper", "upset", "urban",
+        "urge", "usage", "use", "used", "useful", "useless", "usual", "utility",
+        "vacant", "vacuum", "vague", "valid", "valley", "valve", "van", "vanish",
+        "wine", "wing", "wink", "winner", "winter", "wire", "wisdom", "wise",
+        "wish", "witness", "wolf", "woman", "wonder", "wood", "wool", "word",
+        "work", "world", "worry", "worth", "wrap", "wreck", "wrestle", "wrist",
+        "write", "wrong", "yard", "year", "yellow", "you", "young", "youth",
+        "zebra", "zero", "zone", "zoo"
     ];
-
     const seedWords = [];
     for (let i = 0; i < 16; i++) {
         const randomIndex = entropy[i] % words.length;
@@ -269,7 +364,7 @@ export async function performLogin(seedPhrase) {
                 break;
             }
         }
-        
+
         if (!user) throw new Error('User not found - invalid seed phrase');
         const { encryptionKey, encryptionBase64 } = await deriveEncryptionKey(seedPhrase, user.encSalt);
 
@@ -389,7 +484,7 @@ export async function encryptAndStoreMessage(message, publicKeyArmored, userLogi
     }
 }
 
-export async function decryptMessage(user,  encryptedMessageArmored) {
+export async function decryptMessage(user, encryptedMessageArmored) {
     try {
         const encryptionKey = await getStoredEncryptionKey();
 

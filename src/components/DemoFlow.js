@@ -80,7 +80,6 @@ export default function DemoFlow() {
         setLoginResult(null);
 
         try {
-            // await new Promise(resolve => setTimeout(resolve, 1500));
             const isValid = await performLogin(loginSeedInput);
             localStorage.setItem('active-user', JSON.stringify(isValid.user));
             setServerRecord(isValid.user)
