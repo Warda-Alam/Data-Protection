@@ -31,10 +31,10 @@ export async function deriveLoginHash(seedPhrase) {
 
 
 // 3. Derive Encryption Key (using proper KDF)
-export async function deriveEncryptionKey(seedPhrase) {
+export async function deriveEncryptionKey(seedPhrase, saltBase64 = null) {
     const encoder = new TextEncoder();
     const seedBuffer = encoder.encode(seedPhrase);
-    const saltBuffer = crypto.getRandomValues(new Uint8Array(16));
+    const saltBuffer = saltBase64 ? base64ToArrayBuffer(saltBase64) : crypto.getRandomValues(new Uint8Array(16));
 
     // Import raw seed
     const keyMaterial = await crypto.subtle.importKey(
@@ -199,7 +199,7 @@ export function clearStoredSeedPhrase() {
 export async function performProductionSignup(seedPhrase) {
     try {
         const { loginHash } = await deriveLoginHash(seedPhrase);
-        const { encryptionKey,encryptionBase64, salt } = await deriveEncryptionKey(seedPhrase);
+        const { encryptionKey, encryptionBase64, salt } = await deriveEncryptionKey(seedPhrase);
         const { privateKey, publicKey } = await generateKeyPair(seedPhrase);
         const encryptedPrivate = await encryptPrivateKey(privateKey, encryptionKey);
         await storeEncryptionKey(encryptionBase64);
@@ -271,7 +271,7 @@ export async function performLogin(seedPhrase) {
         }
         
         if (!user) throw new Error('User not found - invalid seed phrase');
-        const { encryptionKey } = await deriveEncryptionKeyWithSalt(seedPhrase, user.encSalt);
+        const { encryptionKey, encryptionBase64 } = await deriveEncryptionKey(seedPhrase, user.encSalt);
 
         const privateKey = await decryptPrivateKey(
             user.encryptedPrivateKey,
@@ -279,7 +279,7 @@ export async function performLogin(seedPhrase) {
             user.encryptedPrivateKeyTag,
             encryptionKey
         );
-
+        await storeEncryptionKey(encryptionBase64);
         return { user, privateKey };
 
     } catch (error) {
@@ -287,37 +287,6 @@ export async function performLogin(seedPhrase) {
     }
 }
 
-// New function to derive key with specific salt
-export async function deriveEncryptionKeyWithSalt(seedPhrase, saltBase64) {
-    const encoder = new TextEncoder();
-    const seedBuffer = encoder.encode(seedPhrase);
-    const saltBuffer = base64ToArrayBuffer(saltBase64);
-
-    // Import raw seed
-    const keyMaterial = await crypto.subtle.importKey(
-        'raw',
-        seedBuffer,
-        'PBKDF2',
-        false,
-        ['deriveKey']
-    );
-
-    // Derive AES-GCM key using stored salt
-    const encryptionKey = await crypto.subtle.deriveKey(
-        {
-            name: 'PBKDF2',
-            salt: saltBuffer,
-            iterations: 100000,
-            hash: 'SHA-256'
-        },
-        keyMaterial,
-        { name: 'AES-GCM', length: 256 },
-        false,
-        ['encrypt', 'decrypt']
-    );
-
-    return { encryptionKey };
-}
 
 
 // 10. Utility Functions

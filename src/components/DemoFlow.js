@@ -82,7 +82,7 @@ export default function DemoFlow() {
         try {
             // await new Promise(resolve => setTimeout(resolve, 1500));
             const isValid = await performLogin(loginSeedInput);
-
+            setServerRecord(isValid.user)
             if (isValid) {
                 setLoginStatus('success');
                 setLoginResult({
@@ -557,7 +557,9 @@ export default function DemoFlow() {
             </div>
 
             {/* Right Panel - Server Storage */}
-            <RightPanel onClear={handleLogout}
+            <RightPanel 
+                loginStatus={loginStatus}
+                onClear={handleLogout}
                 serverRecord={serverRecord}
                 copiedField={copiedField}
                 copyToClipboard={copyToClipboard} />

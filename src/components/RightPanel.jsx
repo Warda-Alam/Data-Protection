@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AccordionSection } from "./AccordionSection";
 
-export const RightPanel = ({serverRecord, onClear, copiedField, copyToClipboard }) => {
+export const RightPanel = ({loginStatus, serverRecord, onClear, copiedField, copyToClipboard }) => {
   const isData = localStorage.getItem("production-users");
   const [openSection, setOpenSection] = useState("loginHash");
   const handleSectionToggle = (sectionId) => {
@@ -45,14 +45,26 @@ export const RightPanel = ({serverRecord, onClear, copiedField, copyToClipboard 
     <div className="w-[35%] bg-white border border-gray-200 rounded-xl p-6 shadow-lg">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-gray-800">Server Storage</h2>
-        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+        <span className="text-xs bg-slate-100 text-slate-800 px-2 py-1 rounded-full">
           {serverRecord ? "Stored" : "Empty"}
         </span>
       </div>
 
       <div className="space-y-2">
-        <AccordionSection
-          title="Login Hash"
+         <AccordionSection
+          title={
+            <div className="flex items-center gap-2">
+              <span>Login Hash</span>
+              {loginStatus === 'success' && (
+                <span className="flex items-center gap-1 text-green-600 text-xs bg-green-100 px-2 py-1 rounded-full">
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  Verified
+                </span>
+              )}
+            </div>
+          }
           preview={formatPreview(serverRecord?.loginHash)}
           isOpen={openSection === "loginHash"}
           onToggle={() => handleSectionToggle("loginHash")}
