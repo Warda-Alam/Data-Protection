@@ -392,13 +392,7 @@ export async function encryptAndStoreMessage(message, publicKeyArmored, userLogi
 export async function decryptMessage(encryptedMessageArmored) {
     try {
         const encryptionKey = await getStoredEncryptionKey();
-        const users = JSON.parse(localStorage.getItem('production-users') || '[]');
-
-        if (users.length === 0) {
-            throw new Error('No users found in storage');
-        }
-
-        const user = users[users.length - 1];
+        const user = JSON.parse(localStorage.getItem('active-user') || '[]')
 
         const privateKey = await decryptPrivateKey(
             user.encryptedPrivateKey,

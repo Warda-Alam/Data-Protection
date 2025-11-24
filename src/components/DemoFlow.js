@@ -82,6 +82,7 @@ export default function DemoFlow() {
         try {
             // await new Promise(resolve => setTimeout(resolve, 1500));
             const isValid = await performLogin(loginSeedInput);
+            localStorage.setItem('active-user', JSON.stringify(isValid.user));
             setServerRecord(isValid.user)
             if (isValid) {
                 setLoginStatus('success');
@@ -132,19 +133,17 @@ export default function DemoFlow() {
 
     useEffect(() => {
         try {
-            const usersData = localStorage.getItem('production-users');
+            const usersData = localStorage.getItem('active-user');
+
             if (usersData) {
-                const users = JSON.parse(usersData);
-                if (Array.isArray(users) && users.length > 0) {
-                    setServerRecord(users[users.length - 1]);
-                } else if (typeof users === 'object' && users !== null) {
-                    setServerRecord(users);
-                    localStorage.setItem('production-users', JSON.stringify([users]));
-                }
+                const parsedData = JSON.parse(usersData);
+                setServerRecord(parsedData);
+            } else {
+                setServerRecord(null);
             }
         } catch (error) {
-            console.error('Error loading server records:', error);
-            localStorage.removeItem('production-users');
+            localStorage.removeItem('active-user');
+            setServerRecord(null);
         }
     }, []);
 
@@ -176,9 +175,7 @@ export default function DemoFlow() {
 
     async function handleSignupAuto() {
         setStep('signup');
-        setSteps({
-            step1: { ...STEP_STRUCTURE.SIGNUP, status: 'pending' },
-        });
+        resetAllSteps();
         try {
             // STEP 1: Generate Seed
             updateStep('step1', { status: 'active' });
@@ -193,6 +190,7 @@ export default function DemoFlow() {
             await completeSubstepWithDelay('step1', 4, 1200);
 
             const results = await performProductionSignup(newSeed);
+            localStorage.setItem('active-user', JSON.stringify(results.serverRecord));
             setServerRecord(results.serverRecord);
 
             await completeSubstepWithDelay('step1', 5, 1000);
@@ -277,7 +275,8 @@ export default function DemoFlow() {
 
 
     const handleLogout = () => {
-        localStorage.removeItem("production-users");
+        localStorage.removeItem("active-user");
+        localStorage.removeItem("encryption-key");
         resetAllSteps();
         setStep('idel');
         setServerRecord(null);
@@ -290,6 +289,9 @@ export default function DemoFlow() {
         setLoginSeedInput('');
         setLoginStatus('');
     }
+
+  const isUserRegister = localStorage.getItem("active-user");
+
 
     return (
         <div className="flex gap-4 px-6 py-8 bg-gray-50 min-h-screen w-full">
@@ -447,7 +449,7 @@ export default function DemoFlow() {
                             </div>
 
                             {/* Decryption Field */}
-                            {(step === 'account-created' || loginStatus === 'success') && (<div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                            {isUserRegister && (<div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
                                 <div className="space-y-3">
                                     <button
                                         onClick={handleDecryptPrivateKey}
@@ -529,7 +531,7 @@ export default function DemoFlow() {
                                     value={customEncryptedMessage}
                                     onChange={(e) => setCustomEncryptedMessage(e.target.value)}
                                     placeholder="Paste your encrypted PGP message here..."
-                                    className="w-full h-24 p-3 border border-gray-300 rounded-lg text-sm resize-none mb-3"
+                                    className="w-full h-24 p-3 border focus:outline-none border-gray-300 rounded-lg text-sm resize-none mb-3"
                                 />
                                 <button
                                     className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold text-sm transition-all hover:bg-blue-700 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
@@ -557,8 +559,7 @@ export default function DemoFlow() {
             </div>
 
             {/* Right Panel - Server Storage */}
-            <RightPanel 
-                loginStatus={loginStatus}
+            <RightPanel
                 onClear={handleLogout}
                 serverRecord={serverRecord}
                 copiedField={copiedField}
