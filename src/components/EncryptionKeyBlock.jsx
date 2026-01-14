@@ -67,7 +67,7 @@ const EncryptionKeyBlock = ({ activeStep, isActive }) => {
     return () => {
       isMounted.current = false;
     };
-  }, [isActive]); // Triggers every time isActive changes
+  }, [isActive, activeStep]); // Triggers every time isActive changes
 
   return (
     <div
