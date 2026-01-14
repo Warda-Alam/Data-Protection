@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Hash } from 'lucide-react';
 
-const IdentityHashBlock = ({ isActive }) => {
+const IdentityHashBlock = ({activeStep, isActive }) => {
   const [displayHash, setDisplayHash] = useState("000000000000...00000");
   const [isComputing, setIsComputing] = useState(false);
   
@@ -42,13 +42,13 @@ const IdentityHashBlock = ({ isActive }) => {
 
   return (
     <div className={`transition-all duration-500 rounded-xl p-6 border ${
-      isActive 
+      isActive  || activeStep > 2
         ? "scale-[1.02] border-blue-500/50 bg-slate-800/80 shadow-[0_0_20px_rgba(59,130,246,0.15)] opacity-100" 
         : "opacity-40 grayscale-[0.5] border-slate-800"
     }`}>
       <div className="flex items-center gap-3 mb-4">
         <div className={`w-12 h-12 rounded-lg flex items-center justify-center transition-colors ${
-          isActive ? 'bg-blue-500 shadow-lg shadow-blue-500/20' : 'bg-slate-700'
+          isActive || activeStep > 2 ? 'bg-blue-500 shadow-lg shadow-blue-500/20' : 'bg-slate-700'
         }`}>
           <Hash className={`w-6 h-6 ${isActive ? 'text-white' : 'text-slate-400'}`} />
         </div>

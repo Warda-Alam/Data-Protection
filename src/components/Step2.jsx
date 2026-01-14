@@ -113,7 +113,7 @@ const Step2 = () => {
       setTimeout(() => {
         setAnimationState("unlocking-vault");
         setActiveStep(4);
-      }, 1200);
+      }, 2000);
     }
   }, [animationState]);
 
@@ -122,7 +122,7 @@ const Step2 = () => {
       setTimeout(() => {
         setAnimationState("complete");
         setActiveStep(5);
-      }, 4500);
+      }, 15000);
     }
   }, [animationState]);
 
@@ -134,7 +134,7 @@ const Step2 = () => {
           setAnimationState("entering-seed");
           setActiveStep(1);
         }, 500);
-      }, 8000);
+      }, 3000);
     }
   }, [animationState]);
 
