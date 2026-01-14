@@ -1,8 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Key,
   Hash,
-  Lock,
   Vault,
   Smartphone,
   Server,
@@ -12,11 +11,16 @@ import {
   ArrowDown,
   Globe,
   LockKeyhole,
+  ChevronRight,
 } from "lucide-react";
 import EncryptionKeyBlock from "./EncryptionKeyBlock";
 import SecureWrappingLoop from "./SecureWrappingLoop";
+import SeedPhraseFlow from "./SeedPhraseFlow";
+import IdentityHashBlock from "./IndentityHash";
 
 const Step1 = () => {
+  const [activeStep, setActiveStep] = useState(1);
+
   const seedWords = [
     "apple",
     "bridge",
@@ -28,117 +32,121 @@ const Step1 = () => {
     "harbor",
   ];
 
+  useEffect(() => {
+    let timer;
+    const timeouts = { 1: 3000, 2: 3000, 3: 3000, 4: 3000, 5: 5000 };
+
+    timer = setTimeout(() => {
+      setActiveStep((prev) => (prev >= 5 ? 1 : prev + 1));
+    }, timeouts[activeStep]);
+
+    return () => clearTimeout(timer);
+  }, [activeStep]);
+
+  // Style helper for focus effect
+  const getStepStyle = (step) => {
+    const isActive = activeStep === step;
+    return `transition-all duration-500 transform ${
+      isActive
+        ? "scale-[1.02] border-purple-500/50 bg-slate-800/80 shadow-[0_0_20px_rgba(168,85,247,0.15)] opacity-100 z-10"
+        : "scale-100 border-slate-800 opacity-40 grayscale-[0.5]"
+    }`;
+  };
+
   return (
     <div className="step-content">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-          Signup & Key Generation
+      <div className="text-center mb-12">
+        <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+          Zero-Knowledge Key Generation
         </h2>
-        <p className="text-slate-300 text-lg">
-          Watch how your security is created
+        <p className="text-slate-400">
+          Everything is generated locally. The server only sees what you allow.
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-12 relative">
         {/* Left Side: Process Flow */}
-        <div className="space-y-2">
-          {/* Seed Phrase Generation */}
-          <div className="bg-slate-900/50 rounded-xl p-6 border border-purple-500/10 animate-slide-right">
+        <div className="space-y-6">
+          {/* 1. Seed Phrase */}
+          <div className={`${getStepStyle(1)} rounded-xl p-6 border`}>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                <Key className="w-6 h-6 text-purple-400" />
+              <div
+                className={`w-12 h-12 rounded-lg flex items-center justify-center transition-colors ${
+                  activeStep === 1 ? "bg-purple-500" : "bg-slate-700"
+                }`}
+              >
+                <Key
+                  className={`w-6 h-6 ${
+                    activeStep === 1 ? "text-white" : "text-slate-400"
+                  }`}
+                />
               </div>
-              <div>
-                <h3 className="font-semibold text-white">
-                  1. Seed Phrase Created
-                </h3>
-                <p className="text-xs text-slate-400">16 random words</p>
-              </div>
+              <h3 className="font-semibold text-white">
+                1. Seed Phrase Created
+              </h3>
             </div>
-            <div className="grid grid-cols-4 gap-2">
-              {seedWords.map((word, index) => (
-                <div
-                  key={index}
-                  className="bg-slate-700/50 rounded px-2 py-1 text-xs font-mono text-center animate-slide-down"
-                  style={{ animationDelay: `${0.1 * index}s` }}
-                >
-                  {word}
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-center text-slate-500 mt-2">
-              ... and 8 more words
-            </p>
+            <SeedPhraseFlow isActive={activeStep === 1} />
           </div>
 
-          <div className="flex justify-center">
-            <ArrowDown className="w-8 h-8 text-purple-400 animate-pulse-custom" />
+          {/* 2. Identity Hash */}
+          <div className={`${getStepStyle(2)} rounded-xl border`}>
+          <IdentityHashBlock isActive={activeStep === 2} /></div>
+
+          {/* 3. Encryption Key */}
+          <div className={`${getStepStyle(3)} rounded-xl border`}>
+            <EncryptionKeyBlock isActive={activeStep === 3} />
           </div>
 
-          {/* Hash Generation */}
-          <div
-            className="bg-slate-900/50 rounded-xl p-6 border border-blue-500/10 animate-slide-right"
-            style={{ animationDelay: "0.3s" }}
-          >
+          {/* 4. PGP Keys */}
+          <div className={`${getStepStyle(4)} rounded-xl p-6 border`}>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                <Hash className="w-6 h-6 text-blue-400" />
+              <div
+                className={`w-12 h-12 rounded-lg flex items-center justify-center transition-colors ${
+                  activeStep === 4 ? "bg-violet-500" : "bg-slate-700"
+                }`}
+              >
+                <Vault
+                  className={`w-6 h-6 ${
+                    activeStep === 4 ? "text-white" : "text-slate-400"
+                  }`}
+                />
               </div>
-              <div>
-                <h3 className="font-semibold text-white">2. Identity Hash</h3>
-                <p className="text-xs text-slate-400">One-way conversion</p>
-              </div>
-            </div>
-            <div className="bg-slate-800/50 rounded-lg p-3 font-mono text-xs text-blue-300 break-all animate-encrypt">
-              7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069
-            </div>
-          </div>
-
-          <div className="flex justify-center">
-            <ArrowDown className="w-8 h-8 text-purple-400 animate-pulse-custom" />
-          </div>
-
-          {/* Encryption Key */}
-          <EncryptionKeyBlock />
-
-          <div className="flex justify-center">
-            <ArrowDown className="w-8 h-8 text-purple-400 animate-pulse-custom" />
-          </div>
-
-          {/* PGP Keys */}
-          <div
-            className="bg-slate-900/50 rounded-xl p-6 border border-violet-500/10 animate-slide-right"
-            style={{ animationDelay: "0.9s" }}
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-violet-500/20 rounded-lg flex items-center justify-center">
-                <Vault className="w-6 h-6 text-violet-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white">
-                  4. Key Pair Generated
-                </h3>
-                <p className="text-xs text-slate-400">Public + Private keys</p>
-              </div>
+              <h3 className="font-semibold text-white">4. Secure Key Pair</h3>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-center">
-                <Globe className="w-6 h-6 text-blue-400 mx-auto mb-1" />
-                <p className="text-xs text-blue-300">Public Key</p>
+              <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-2 text-center">
+                <Globe className="w-5 h-5 text-blue-400 mx-auto mb-1" />
+                <span className="text-[10px] text-blue-300">Public Key</span>
               </div>
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-center">
-                <LockKeyhole className="w-6 h-6 text-red-400 mx-auto mb-1" />
-                <p className="text-xs text-red-300">Private Key</p>
+              <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-2 text-center">
+                <LockKeyhole className="w-5 h-5 text-red-400 mx-auto mb-1" />
+                <span className="text-[10px] text-red-300">Private Key</span>
               </div>
             </div>
           </div>
-          <div className="flex justify-center">
-            <ArrowDown className="w-8 h-8 text-purple-400 animate-pulse-custom" />
+
+          {/* 5. Wrapping */}
+          <div
+            className={`${getStepStyle(5)} rounded-xl border overflow-hidden`}
+          >
+            <SecureWrappingLoop isActive={activeStep === 5} />
           </div>
-          <SecureWrappingLoop />
         </div>
 
-        {/* Right Side: Visual Representation */}
+        {/* --- MIDDLE DATA PACKET ANIMATION --- */}
+        <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 w-px bg-slate-800">
+          <div
+            className="absolute left-1/2 -translate-x-1/2 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.5)] transition-all duration-1000 ease-in-out"
+            style={{
+              top: `${(activeStep - 1) * 22}%`,
+              opacity: activeStep === 5 ? 0 : 1,
+            }}
+          >
+            <ChevronRight className="text-white w-5 h-5 animate-pulse" />
+          </div>
+        </div>
+
+        {/* Right Side: Visual State */}
         <div className="flex flex-col justify-center">
           <div className="bg-slate-900/70 rounded-2xl p-8 border border-purple-500/20 relative overflow-hidden">
             <div className="absolute inset-0 animate-shimmer opacity-20"></div>

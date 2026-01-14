@@ -117,3 +117,103 @@ code {
       transform: translateX(0);
     }
   }
+
+  /* Add these animations to your CSS */
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(20px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+@keyframes slideIn {
+  from { 
+    transform: translateX(-100%); 
+  }
+  to { 
+    transform: translateX(0); 
+  }
+}
+
+@keyframes lockAnimation {
+  0% { 
+    transform: scale(0.8) rotate(-10deg); 
+    opacity: 0; 
+  }
+  50% { 
+    transform: scale(1.1) rotate(5deg); 
+    opacity: 1; 
+  }
+  100% { 
+    transform: scale(1) rotate(0deg); 
+    opacity: 1; 
+  }
+}
+
+.fade-in { 
+  animation: fadeIn 0.6s ease-out; 
+}
+
+.slide-in { 
+  animation: slideIn 0.5s ease-out; 
+}
+
+.lock-animate { 
+  animation: lockAnimation 0.8s ease-out; 
+}
+
+
+/* Add to your global CSS or style tag */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes wordPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(10px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes wordFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Alternative approach using class-based animations */
+.word-animate {
+  animation: slideIn 0.5s ease-out forwards;
+}
+
+.word-animate-pop {
+  animation: wordPop 0.6s ease-out forwards;
+}
+
+.word-animate-fade {
+  animation: wordFadeIn 0.4s ease-out forwards;
+}

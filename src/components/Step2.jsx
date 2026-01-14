@@ -1,27 +1,47 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Key, Unlock, Vault, ShieldCheck, EyeOff, Check, 
-  X, ArrowRight, Send, CheckCircle, 
-  Info
-} from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  Key,
+  Unlock,
+  Vault,
+  ShieldCheck,
+  EyeOff,
+  Check,
+  X,
+  ArrowRight,
+  Send,
+  CheckCircle,
+  Info,
+} from "lucide-react";
 
 const Step2 = () => {
-  const [animationState, setAnimationState] = useState('idle');
+  const [animationState, setAnimationState] = useState("idle");
   const [seedWords, setSeedWords] = useState([]);
-  const [loginHash, setLoginHash] = useState('');
-  const [encryptionKey, setEncryptionKey] = useState('');
-  const [showServerSend, setShowServerSend] = useState(false);
-  const [showVaultUnlock, setShowVaultUnlock] = useState(false);
+  const [loginHash, setLoginHash] = useState("");
+  const [encryptionKey, setEncryptionKey] = useState("");
+  const [activeStep, setActiveStep] = useState(1); // Track which step is active
 
   const fullSeedPhrase = [
-    'apple', 'bridge', 'castle', 'dragon', 'eagle', 'forest',
-    'garden', 'harbor', 'island', 'jungle', 'kingdom', 'lighthouse',
-    'mountain', 'nature', 'ocean', 'palace'
+    "apple",
+    "bridge",
+    "castle",
+    "dragon",
+    "eagle",
+    "forest",
+    "garden",
+    "harbor",
+    "island",
+    "jungle",
+    "kingdom",
+    "lighthouse",
+    "mountain",
+    "nature",
+    "ocean",
+    "palace",
   ];
 
   const generateRandomHash = (length) => {
-    const chars = '0123456789abcdef';
-    let result = '';
+    const chars = "0123456789abcdef";
+    let result = "";
     for (let i = 0; i < length; i++) {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
@@ -29,31 +49,32 @@ const Step2 = () => {
   };
 
   const resetAnimation = () => {
-    setAnimationState('idle');
+    setAnimationState("idle");
     setSeedWords([]);
-    setLoginHash('');
-    setEncryptionKey('');
-    setShowServerSend(false);
-    setShowVaultUnlock(false);
+    setLoginHash("");
+    setEncryptionKey("");
+    setActiveStep(1);
   };
 
   useEffect(() => {
     const startSequence = setTimeout(() => {
-      setAnimationState('entering-seed');
+      setAnimationState("entering-seed");
+      setActiveStep(1);
     }, 500);
 
     return () => clearTimeout(startSequence);
   }, []);
 
   useEffect(() => {
-    if (animationState === 'entering-seed') {
+    if (animationState === "entering-seed") {
       fullSeedPhrase.forEach((word, index) => {
         setTimeout(() => {
-          setSeedWords(prev => [...prev, word]);
+          setSeedWords((prev) => [...prev, word]);
 
           if (index === fullSeedPhrase.length - 1) {
             setTimeout(() => {
-              setAnimationState('generating-keys');
+              setAnimationState("generating-keys");
+              setActiveStep(2);
             }, 300);
           }
         }, index * 40);
@@ -62,7 +83,7 @@ const Step2 = () => {
   }, [animationState]);
 
   useEffect(() => {
-    if (animationState === 'generating-keys') {
+    if (animationState === "generating-keys") {
       const fullLoginHash = generateRandomHash(48);
       const fullEncryptionKey = generateRandomHash(48);
 
@@ -81,43 +102,39 @@ const Step2 = () => {
       }, 300);
 
       setTimeout(() => {
-        setAnimationState('sending-to-server');
+        setAnimationState("sending-to-server");
+        setActiveStep(3);
       }, 1500);
     }
   }, [animationState]);
 
   useEffect(() => {
-    if (animationState === 'sending-to-server') {
+    if (animationState === "sending-to-server") {
       setTimeout(() => {
-        setShowServerSend(true);
-      }, 200);
-
-      setTimeout(() => {
-        setAnimationState('unlocking-vault');
+        setAnimationState("unlocking-vault");
+        setActiveStep(4);
       }, 1200);
     }
   }, [animationState]);
 
   useEffect(() => {
-    if (animationState === 'unlocking-vault') {
+    if (animationState === "unlocking-vault") {
       setTimeout(() => {
-        setShowVaultUnlock(true);
-      }, 600);
-
-      setTimeout(() => {
-        setAnimationState('complete');
-      }, 1800);
+        setAnimationState("complete");
+        setActiveStep(5);
+      }, 4500);
     }
   }, [animationState]);
 
   useEffect(() => {
-    if (animationState === 'complete') {
+    if (animationState === "complete") {
       setTimeout(() => {
         resetAnimation();
         setTimeout(() => {
-          setAnimationState('entering-seed');
+          setAnimationState("entering-seed");
+          setActiveStep(1);
         }, 500);
-      }, 5000);
+      }, 8000);
     }
   }, [animationState]);
 
@@ -165,6 +182,12 @@ const Step2 = () => {
           100% { transform: translateX(100%); }
         }
         
+        @keyframes highlight {
+          0% { border-color: rgba(99, 102, 241, 0.3); }
+          50% { border-color: rgba(99, 102, 241, 0.8); }
+          100% { border-color: rgba(99, 102, 241, 0.3); }
+        }
+        
         .animate-fade-in {
           animation: fadeIn 0.2s ease-out forwards;
         }
@@ -189,6 +212,10 @@ const Step2 = () => {
           animation: glow 2s ease-in-out infinite;
         }
         
+        .animate-highlight {
+          animation: highlight 2s ease-in-out infinite;
+        }
+        
         .shimmer-effect {
           position: relative;
           overflow: hidden;
@@ -210,26 +237,47 @@ const Step2 = () => {
         <h2 className="text-2xl lg:text-3xl font-bold mb-2 bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
           Login & Vault Unlock
         </h2>
-        <p className="text-slate-400 text-sm">Secure access without passwords</p>
+        <p className="text-slate-400 text-sm">
+          Secure access without passwords
+        </p>
       </div>
 
       <div className="bg-slate-900/50 rounded-xl p-5 border border-indigo-500/20 shadow-2xl">
         {/* Step 1: Enter Seed */}
-        <div className="flex items-center gap-4 mb-4 pb-4 border-b border-slate-800">
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-500 ${
-            animationState !== 'idle' ? 'bg-indigo-500/20 scale-100' : 'bg-indigo-500/5 scale-95'
-          }`}>
-            <Key className={`w-6 h-6 transition-all duration-500 ${
-              animationState !== 'idle' ? 'text-indigo-400' : 'text-indigo-400/30'
-            }`} />
+        <div
+          className={`flex items-center gap-4 mb-4 pb-4 border-b border-slate-800 transition-all duration-300 ${
+            activeStep >= 1 ? "opacity-100" : "opacity-60"
+          }`}
+        >
+          <div
+            className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
+              activeStep === 1
+                ? "bg-indigo-500/20 scale-100 border-2 border-indigo-400/50 animate-highlight"
+                : activeStep > 1
+                ? "bg-indigo-500/10 scale-100"
+                : "bg-indigo-500/5 scale-95"
+            }`}
+          >
+            <Key
+              className={`w-6 h-6 transition-all duration-300 ${
+                activeStep === 1
+                  ? "text-indigo-400"
+                  : activeStep > 1
+                  ? "text-indigo-400/80"
+                  : "text-indigo-400/30"
+              }`}
+            />
           </div>
           <div className="flex-1">
-            <h3 className="font-bold text-white text-sm mb-1">Enter Seed Phrase</h3>
+            <h3 className="font-bold text-white text-sm mb-1">
+              Enter Seed Phrase
+            </h3>
             <div className="bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700/50">
               <div className="flex flex-wrap gap-1 text-xs font-mono">
                 {seedWords.slice(0, 4).map((word, index) => (
                   <span key={index} className="text-indigo-300 animate-fade-in">
-                    {word}{index < 3 && ','}
+                    {word}
+                    {index < 3 && ","}
                   </span>
                 ))}
                 {seedWords.length > 4 && (
@@ -237,45 +285,84 @@ const Step2 = () => {
                     ... +{seedWords.length - 4} more
                   </span>
                 )}
-                {animationState === 'entering-seed' && seedWords.length < fullSeedPhrase.length && (
-                  <span className="inline-block w-1 h-3 bg-indigo-400 animate-blink"></span>
-                )}
+                {animationState === "entering-seed" &&
+                  seedWords.length < fullSeedPhrase.length && (
+                    <span className="inline-block w-1 h-3 bg-indigo-400 animate-blink"></span>
+                  )}
               </div>
             </div>
           </div>
         </div>
 
         {/* Step 2: Keys Generated */}
-        <div className={`transition-all duration-500 ${
-          animationState === 'generating-keys' || animationState === 'sending-to-server' || animationState === 'unlocking-vault' || animationState === 'complete'
-            ? 'opacity-100 max-h-96' : 'opacity-0 max-h-0 overflow-hidden'
-        }`}>
-          <div className="flex items-center gap-4 mb-4 pb-4 border-b border-slate-800">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 bg-emerald-500/20">
-              <Unlock className="w-6 h-6 text-emerald-400" />
-            </div>
-            <div className="flex-1 space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-emerald-300 w-24 flex-shrink-0">Login Hash:</span>
-                <div className="flex-1 bg-slate-800/50 rounded px-2 py-1 border border-emerald-500/30 shimmer-effect">
-                  <div className="font-mono text-xs text-emerald-400 truncate">
-                    {loginHash}
-                    {animationState === 'generating-keys' && loginHash.length < 48 && (
+        <div
+          className={`flex items-center gap-4 mb-4 pb-4 border-b border-slate-800 transition-all duration-300 ${
+            activeStep >= 2 ? "opacity-100" : "opacity-60"
+          }`}
+        >
+          <div
+            className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
+              activeStep === 2
+                ? "bg-emerald-500/20 scale-100 border-2 border-emerald-400/50 animate-highlight"
+                : activeStep > 2
+                ? "bg-emerald-500/10 scale-100"
+                : "bg-emerald-500/5 scale-95"
+            }`}
+          >
+            <Unlock
+              className={`w-6 h-6 transition-all duration-300 ${
+                activeStep === 2
+                  ? "text-emerald-400"
+                  : activeStep > 2
+                  ? "text-emerald-400/80"
+                  : "text-emerald-400/30"
+              }`}
+            />
+          </div>
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-emerald-300 w-24 flex-shrink-0">
+                Login Hash:
+              </span>
+              <div
+                className={`flex-1 bg-slate-800/50 rounded px-2 py-1 border transition-all duration-300 ${
+                  activeStep === 2
+                    ? "border-emerald-500/50 shimmer-effect"
+                    : activeStep > 2
+                    ? "border-emerald-500/30"
+                    : "border-slate-700/50"
+                }`}
+              >
+                <div className="font-mono text-xs text-emerald-400 truncate">
+                  {loginHash}
+                  {animationState === "generating-keys" &&
+                    loginHash.length < 48 && (
                       <span className="inline-block w-1 h-3 bg-emerald-400 animate-blink ml-0.5"></span>
                     )}
-                  </div>
                 </div>
               </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-blue-300 w-24 flex-shrink-0">Encrypt Key:</span>
-                <div className="flex-1 bg-slate-800/50 rounded px-2 py-1 border border-blue-500/30 shimmer-effect">
-                  <div className="font-mono text-xs text-blue-400 truncate">
-                    {encryptionKey}
-                    {animationState === 'generating-keys' && encryptionKey.length > 0 && encryptionKey.length < 48 && (
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-blue-300 w-24 flex-shrink-0">
+                Encrypt Key:
+              </span>
+              <div
+                className={`flex-1 bg-slate-800/50 rounded px-2 py-1 border transition-all duration-300 ${
+                  activeStep === 2
+                    ? "border-blue-500/50 shimmer-effect"
+                    : activeStep > 2
+                    ? "border-blue-500/30"
+                    : "border-slate-700/50"
+                }`}
+              >
+                <div className="font-mono text-xs text-blue-400 truncate">
+                  {encryptionKey}
+                  {animationState === "generating-keys" &&
+                    encryptionKey.length > 0 &&
+                    encryptionKey.length < 48 && (
                       <span className="inline-block w-1 h-3 bg-blue-400 animate-blink ml-0.5"></span>
                     )}
-                  </div>
                 </div>
               </div>
             </div>
@@ -283,82 +370,284 @@ const Step2 = () => {
         </div>
 
         {/* Step 3: Send to Server */}
-        <div className={`transition-all duration-500 ${
-          showServerSend ? 'opacity-100 max-h-24' : 'opacity-0 max-h-0 overflow-hidden'
-        }`}>
-          <div className="flex items-center gap-4 mb-4 pb-4 border-b border-slate-800">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 bg-purple-500/20 shimmer-effect">
-              <Send className="w-6 h-6 text-purple-400" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-white text-sm mb-1">Verifying Identity</h3>
-              <p className="text-xs text-purple-300">Login hash sent to server...</p>
-            </div>
+        <div
+          className={`flex items-center gap-4 mb-4 pb-4 border-b border-slate-800 transition-all duration-300 ${
+            activeStep >= 3 ? "opacity-100" : "opacity-60"
+          }`}
+        >
+          <div
+            className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
+              activeStep === 3
+                ? "bg-purple-500/20 scale-100 border-2 border-purple-400/50 animate-highlight"
+                : activeStep > 3
+                ? "bg-purple-500/10 scale-100"
+                : "bg-purple-500/5 scale-95"
+            }`}
+          >
+            <Send
+              className={`w-6 h-6 transition-all duration-300 ${
+                activeStep === 3
+                  ? "text-purple-400"
+                  : activeStep > 3
+                  ? "text-purple-400/80"
+                  : "text-purple-400/30"
+              }`}
+            />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-bold text-white text-sm mb-1">
+              Verifying Identity
+            </h3>
+            <p
+              className={`text-xs transition-all duration-300 ${
+                activeStep === 3
+                  ? "text-purple-300"
+                  : activeStep > 3
+                  ? "text-purple-300/80"
+                  : "text-slate-500"
+              }`}
+            >
+              Login hash sent to server...
+            </p>
           </div>
         </div>
 
         {/* Step 4: Vault Unlocked */}
-        <div className={`transition-all duration-700 ${
-          showVaultUnlock ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-        }`}>
-          <div className="flex items-center gap-4">
-            <div className="relative w-16 h-16 flex-shrink-0">
-              {/* Outer glowing ring */}
-              {animationState === 'unlocking-vault' && (
-                <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-cyan-400 border-r-cyan-400 animate-rotate animate-glow"></div>
+        <div
+          className={`flex items-center gap-4 transition-all duration-700 ${
+            activeStep >= 4
+              ? "opacity-100 translate-y-0"
+              : "opacity-60 translate-y-0"
+          }`}
+        >
+          <div className="relative w-16 h-16 flex-shrink-0">
+            {activeStep === 4 && (
+              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-purple-400 border-r-purple-400 animate-rotate animate-glow"></div>
+            )}
+
+            {activeStep === 4 && (
+              <div
+                className="absolute inset-1 rounded-full border-2 border-transparent border-b-blue-500 border-l-blue-500 animate-rotate-reverse"
+                style={{ animationDuration: "2.5s" }}
+              ></div>
+            )}
+
+            {/* Inner ring - Shows when storing locally */}
+            {activeStep === 4 && (
+              <div className="absolute inset-2 rounded-full border border-cyan-400/50 animate-pulse-custom"></div>
+            )}
+
+            {/* Glowing dots - Different colors for different stages */}
+            {activeStep === 4 && (
+              <>
+                {/* Purple for receiving encrypted key */}
+                <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-purple-400 rounded-full -translate-x-1/2 -translate-y-1 animate-pulse-custom shadow-lg shadow-purple-400/50"></div>
+                {/* Blue for decrypting */}
+                <div
+                  className="absolute bottom-0 left-1/2 w-1.5 h-1.5 bg-blue-400 rounded-full -translate-x-1/2 translate-y-1 animate-pulse-custom shadow-lg shadow-blue-400/50"
+                  style={{ animationDelay: "0.5s" }}
+                ></div>
+                {/* Cyan for storing */}
+                <div
+                  className="absolute left-0 top-1/2 w-1.5 h-1.5 bg-cyan-400 rounded-full -translate-y-1/2 -translate-x-1 animate-pulse-custom shadow-lg shadow-cyan-400/50"
+                  style={{ animationDelay: "1s" }}
+                ></div>
+                <div
+                  className="absolute right-0 top-1/2 w-1.5 h-1.5 bg-cyan-400 rounded-full -translate-y-1/2 translate-x-1 animate-pulse-custom shadow-lg shadow-cyan-400/50"
+                  style={{ animationDelay: "1.5s" }}
+                ></div>
+              </>
+            )}
+
+            {/* Center vault icon */}
+            <div
+              className={`absolute inset-0 rounded-full flex items-center justify-center transition-all duration-300 ${
+                activeStep === 5
+                  ? "bg-green-500/20 scale-100 border-2 border-green-400/50"
+                  : activeStep === 4
+                  ? "bg-gradient-to-br from-purple-500/10 via-blue-500/10 to-cyan-500/10 scale-90 border-2 border-cyan-400/30 animate-highlight"
+                  : activeStep > 4
+                  ? "bg-green-500/10 scale-100"
+                  : "bg-slate-500/10 scale-90"
+              }`}
+            >
+              {activeStep === 5 ? (
+                <CheckCircle className="w-8 h-8 text-green-400 scale-100" />
+              ) : (
+                <Vault
+                  className={`w-8 h-8 transition-all duration-300 ${
+                    activeStep === 4
+                      ? "text-cyan-400 scale-75"
+                      : activeStep > 4
+                      ? "text-green-400/80 scale-100"
+                      : "text-slate-400/30 scale-75"
+                  }`}
+                />
               )}
-              
-              {/* Middle ring */}
-              {animationState === 'unlocking-vault' && (
-                <div className="absolute inset-1 rounded-full border-2 border-transparent border-b-cyan-500 border-l-cyan-500 animate-rotate-reverse" style={{ animationDuration: '2.5s' }}></div>
-              )}
-              
-              {/* Inner ring */}
-              {animationState === 'unlocking-vault' && (
-                <div className="absolute inset-2 rounded-full border border-cyan-400/50 animate-pulse-custom"></div>
-              )}
-              
-              {/* Glowing dots */}
-              {animationState === 'unlocking-vault' && (
-                <>
-                  <div className="absolute top-0 left-1/2 w-1.5 h-1.5 bg-cyan-400 rounded-full -translate-x-1/2 -translate-y-1 animate-pulse-custom shadow-lg shadow-cyan-400/50"></div>
-                  <div className="absolute bottom-0 left-1/2 w-1.5 h-1.5 bg-cyan-400 rounded-full -translate-x-1/2 translate-y-1 animate-pulse-custom shadow-lg shadow-cyan-400/50" style={{ animationDelay: '0.5s' }}></div>
-                  <div className="absolute left-0 top-1/2 w-1.5 h-1.5 bg-cyan-400 rounded-full -translate-y-1/2 -translate-x-1 animate-pulse-custom shadow-lg shadow-cyan-400/50" style={{ animationDelay: '1s' }}></div>
-                  <div className="absolute right-0 top-1/2 w-1.5 h-1.5 bg-cyan-400 rounded-full -translate-y-1/2 translate-x-1 animate-pulse-custom shadow-lg shadow-cyan-400/50" style={{ animationDelay: '1.5s' }}></div>
-                </>
-              )}
-              
-              {/* Center vault icon */}
-              <div className={`absolute inset-0 rounded-full flex items-center justify-center transition-all duration-1000 ${
-                animationState === 'complete'
-                  ? 'bg-cyan-500/20 scale-100' 
-                  : 'bg-cyan-500/10 scale-90'
-              }`}>
-                <Vault className={`w-8 h-8 text-cyan-400 transition-all duration-1000 ${
-                  animationState === 'complete' ? 'scale-100' : 'scale-75'
-                }`} />
-              </div>
             </div>
-            
-            <div className="flex-1">
-              <h3 className="font-bold text-white text-sm mb-1">Vault Unlocked</h3>
-              {animationState === 'complete' ? (
-                <div className="flex items-center gap-2 text-cyan-300 animate-fade-in">
-                  <CheckCircle className="w-4 h-4" />
+          </div>
+
+          <div className="flex-1 space-y-2">
+            <h3 className="font-bold text-white text-sm mb-1">
+              Vault Unlock Process
+            </h3>
+
+            {activeStep === 5 ? (
+              <div className="space-y-2 animate-fade-in">
+                <div className="flex items-center gap-2 text-green-300">
+                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
                   <span className="text-sm font-bold">Access Granted</span>
                 </div>
-              ) : (
-                <p className="text-xs text-cyan-300">Decrypting private key...</p>
-              )}
-            </div>
+                <div className="text-xs text-green-200/80">
+                  Private key decrypted and stored locally ✓
+                </div>
+              </div>
+            ) : activeStep === 4 ? (
+              <div className="space-y-3">
+                {/* Step 4.1: Receiving encrypted private key */}
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                      animationState === "unlocking-vault"
+                        ? "bg-purple-500/20 animate-pulse-custom"
+                        : "bg-slate-700"
+                    }`}
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full bg-purple-400"></div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-purple-300">
+                        Receiving encrypted private key...
+                      </span>
+                      {animationState === "unlocking-vault" && (
+                        <span className="text-xs text-purple-400 animate-pulse-custom">
+                          Receiving
+                        </span>
+                      )}
+                    </div>
+                    {animationState === "unlocking-vault" && (
+                      <div className="mt-1 bg-slate-800/50 rounded px-2 py-1 border border-purple-500/30">
+                        <div className="font-mono text-xs text-purple-400 truncate">
+                          enc_3f8a7b...c92d1e
+                          <span className="inline-block w-1 h-3 bg-purple-400 animate-blink ml-0.5"></span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Step 4.2: Decrypting with encryption key */}
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                      animationState === "unlocking-vault"
+                        ? "bg-blue-500/20 animate-pulse-custom"
+                        : "bg-slate-700"
+                    }`}
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-blue-300">
+                        Decrypting with local encryption key...
+                      </span>
+                      {animationState === "unlocking-vault" && (
+                        <span className="text-xs text-blue-400 animate-pulse-custom">
+                          Decrypting
+                        </span>
+                      )}
+                    </div>
+                    {animationState === "unlocking-vault" && (
+                      <div className="mt-1 flex items-center gap-2">
+                        <div className="flex-1 bg-slate-800/50 rounded px-2 py-1 border border-blue-500/30">
+                          <div className="font-mono text-xs text-blue-400 truncate">
+                            Using: {encryptionKey.substring(0, 24)}...
+                            <span className="inline-block w-1 h-3 bg-blue-400 animate-blink ml-0.5"></span>
+                          </div>
+                        </div>
+                        <ArrowRight className="w-3 h-3 text-blue-400 flex-shrink-0" />
+                        <div className="flex-1 bg-slate-800/50 rounded px-2 py-1 border border-green-500/30">
+                          <div className="font-mono text-xs text-green-400 truncate">
+                            0x8923...a4f1
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Step 4.3: Storing decrypted key locally */}
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-4 h-4 rounded-full flex items-center justify-center ${
+                      animationState === "unlocking-vault"
+                        ? "bg-cyan-500/20 animate-pulse-custom"
+                        : "bg-slate-700"
+                    }`}
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400"></div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-cyan-300">
+                        Storing private key locally...
+                      </span>
+                      {animationState === "unlocking-vault" && (
+                        <span className="text-xs text-cyan-400 animate-pulse-custom">
+                          Securing
+                        </span>
+                      )}
+                    </div>
+                    {animationState === "unlocking-vault" && (
+                      <div className="mt-1 flex items-center gap-2">
+                        <div className="flex-1 bg-slate-800/50 rounded px-2 py-1 border border-cyan-500/30">
+                          <div className="font-mono text-xs text-cyan-400">
+                            <div className="flex items-center justify-between">
+                              <span>Secure Local Storage</span>
+                              <ShieldCheck className="w-3 h-3 text-cyan-400" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-slate-500">
+                  Waiting for backend verification...
+                </p>
+                <div className="text-xs text-slate-600">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-2 h-2 rounded-full bg-slate-700"></div>
+                    <span>Receive encrypted private key</span>
+                  </div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-2 h-2 rounded-full bg-slate-700"></div>
+                    <span>Decrypt with local encryption key</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-slate-700"></div>
+                    <span>Store on browser</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Security Info - Compact */}
-      <div className={`grid grid-cols-2 gap-3 mt-4 transition-all duration-700 ${
-        animationState === 'complete' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-      }`}>
+      <div
+        className={`grid grid-cols-2 gap-3 mt-4 transition-all duration-700 ${
+          activeStep === 5
+            ? "opacity-100 translate-y-0"
+            : "opacity-60 translate-y-0"
+        }`}
+      >
         <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-lg p-3 border border-emerald-500/30">
           <div className="flex items-center gap-2 mb-2">
             <ShieldCheck className="w-5 h-5 text-emerald-400" />
@@ -392,10 +681,7 @@ const Step2 = () => {
             </li>
           </ul>
         </div>
-
-         
       </div>
-      
     </div>
   );
 };
