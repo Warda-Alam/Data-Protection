@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import ProgressBar from '../components/ProgressBar';
 import Step1 from '../components/Step1';
 import Step2 from '../components/Step2';
 import Step3 from '../components/Step3';
-import Navigation from '../components/Navigation';
 import '../index.css';
 import Step4 from '../components/Step4';
 import EncryptionFlowAnimation from '../components/ShareLink';
@@ -12,19 +10,19 @@ function DetailSteps() {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
 
-  const handleNext = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      alert('🎉 You now understand how zero-knowledge encryption protects your data!\n\nYour data is encrypted before it leaves your device, and only you hold the key.');
-    }
-  };
+  // const handleNext = () => {
+  //   if (currentStep < totalSteps) {
+  //     setCurrentStep(currentStep + 1);
+  //   } else {
+  //     alert('🎉 You now understand how zero-knowledge encryption protects your data!\n\nYour data is encrypted before it leaves your device, and only you hold the key.');
+  //   }
+  // };
 
-  const handlePrev = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
+  // const handlePrev = () => {
+  //   if (currentStep > 1) {
+  //     setCurrentStep(currentStep - 1);
+  //   }
+  // };
 
   const renderStep = () => {
     switch (currentStep) {

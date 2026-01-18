@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
-  Lock, Unlock, Server, Smartphone, UnlockKeyhole,
-  Key, Shield, Eye, EyeOff
+  Lock, Unlock, Server, UnlockKeyhole,
+  Key, Shield, Eye
 } from 'lucide-react';
 
 const Step3 = () => {

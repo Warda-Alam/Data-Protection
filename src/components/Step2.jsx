@@ -10,7 +10,6 @@ import {
   ArrowRight,
   Send,
   CheckCircle,
-  Info,
 } from "lucide-react";
 
 const Step2 = () => {
