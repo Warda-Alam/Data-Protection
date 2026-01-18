@@ -42,7 +42,7 @@ const EncryptionFlowAnimation = () => {
         if (prev >= 6) return 1;
         return prev + 1;
       });
-    }, 4000);
+    }, 5000);
     return () => clearInterval(timer);
   }, []);
 
