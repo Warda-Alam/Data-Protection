@@ -1,9 +1,4 @@
-
-import Step1 from '../components/Step1';
-import Step2 from '../components/Step2';
-import Step3 from '../components/Step3';
 import '../index.css';
-import Step4 from '../components/Step4';
 import EncryptionFlowAnimation from '../components/ShareLink';
 
 function DetailSteps() {
@@ -28,14 +23,8 @@ function DetailSteps() {
     switch (1) {
       case 1:
         return <EncryptionFlowAnimation />;
-      case 2:
-        return <Step2 />;
-      case 3:
-        return <Step3 />;
-      case 4:
-        return <Step4 />;
       default:
-        return <Step1 />;
+        return <EncryptionFlowAnimation />;
     }
   };
 
