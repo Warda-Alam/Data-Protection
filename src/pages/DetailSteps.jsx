@@ -6,6 +6,7 @@ import Step3 from '../components/Step3';
 import Navigation from '../components/Navigation';
 import '../index.css';
 import Step4 from '../components/Step4';
+import EncryptionFlowAnimation from '../components/ShareLink';
 
 function DetailSteps() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -28,7 +29,7 @@ function DetailSteps() {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <Step1 />;
+        return <EncryptionFlowAnimation />;
       case 2:
         return <Step2 />;
       case 3:
@@ -42,10 +43,10 @@ function DetailSteps() {
 
   return (
     <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen text-white">
-      <ProgressBar 
+      {/* <ProgressBar 
         currentStep={currentStep}
         totalSteps={totalSteps}
-      />
+      /> */}
       
       <div className="pt-24 pb-12 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
@@ -53,12 +54,12 @@ function DetailSteps() {
             {renderStep()}
           </div>
           
-          <Navigation
+          {/* <Navigation
             currentStep={currentStep}
             totalSteps={totalSteps}
             onNext={handleNext}
             onPrev={handlePrev}
-          />
+          /> */}
         </div>
       </div>
     </div>
