@@ -167,13 +167,13 @@ export async function deriveEncryptionKey(seedPhrase, saltBase64 = null) {
 
 // 4. Generate PGP Key Pair (REAL PGP - Production Ready)
 export async function generateKeyPair(seedPhrase) {
-    const seedBuffer = new TextEncoder().encode(seedPhrase);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', seedBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    // const seedBuffer = new TextEncoder().encode(seedPhrase);
+    // const hashBuffer = await crypto.subtle.digest('SHA-256', seedBuffer);
+    // const hashArray = Array.from(new Uint8Array(hashBuffer));
+    // const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-    const userId = `zk-user-${hashHex.substring(0, 16)}@seed-based.local`;
-    const userName = `ZK User ${hashHex.substring(0, 8)}`;
+    // const userId = `zk-user-${hashHex.substring(0, 16)}@seed-based.local`;
+    // const userName = `ZK User ${hashHex.substring(0, 8)}`;
 
     const { privateKey, publicKey } = await openpgp.generateKey({
         type: 'rsa',

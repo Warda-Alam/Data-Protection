@@ -79,7 +79,7 @@ const Step2 = () => {
         }, index * 40);
       });
     }
-  }, [animationState]);
+  }, [animationState, fullSeedPhrase]);
 
   useEffect(() => {
     if (animationState === "generating-keys") {

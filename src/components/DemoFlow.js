@@ -4,7 +4,6 @@ import {
     performProductionSignup,
     encryptAndStoreMessage,
     decryptMessage,
-    encryptPrivateKey,
     getStoredEncryptionKey,
     decryptPrivateKey,
     performLogin,
@@ -119,16 +118,6 @@ export default function DemoFlow() {
         }));
     };
 
-    const completeSubstep = (stepId, substepIndex) => {
-        setSteps(prev => {
-            const step = { ...prev[stepId] };
-            if (!step.completedSubsteps) step.completedSubsteps = [];
-            if (!step.completedSubsteps.includes(substepIndex)) {
-                step.completedSubsteps = [...step.completedSubsteps, substepIndex];
-            }
-            return { ...prev, [stepId]: step };
-        });
-    };
 
     useEffect(() => {
         try {

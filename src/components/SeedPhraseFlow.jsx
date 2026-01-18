@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 const SeedPhraseFlow = ({ isActive }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [animateWords, setAnimateWords] = useState(false);
-  const totalSteps = 10;
+  // const totalSteps = 10;
 
   const seedWords = [
     "apple",

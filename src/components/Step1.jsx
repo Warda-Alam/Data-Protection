@@ -19,7 +19,7 @@ import IdentityHashBlock from "./IndentityHash";
 
 const Step1 = () => {
   const [activeStep, setActiveStep] = useState(1);
-  const [completedStep, setCompletedStep] = useState(0);
+  // const [completedStep, setCompletedStep] = useState(0);
 
   useEffect(() => {
     const timeouts = { 1: 3000, 2: 3000, 3: 3000, 4: 3000, 5: 5000 };

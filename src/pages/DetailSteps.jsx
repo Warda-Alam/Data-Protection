@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+
 import Step1 from '../components/Step1';
 import Step2 from '../components/Step2';
 import Step3 from '../components/Step3';
@@ -7,8 +7,8 @@ import Step4 from '../components/Step4';
 import EncryptionFlowAnimation from '../components/ShareLink';
 
 function DetailSteps() {
-  const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 4;
+  // const [currentStep, setCurrentStep] = useState(1);
+  // const totalSteps = 4;
 
   // const handleNext = () => {
   //   if (currentStep < totalSteps) {
@@ -25,7 +25,7 @@ function DetailSteps() {
   // };
 
   const renderStep = () => {
-    switch (currentStep) {
+    switch (1) {
       case 1:
         return <EncryptionFlowAnimation />;
       case 2:
