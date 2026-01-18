@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Key,
   Unlock,
@@ -19,7 +19,7 @@ const Step2 = () => {
   const [encryptionKey, setEncryptionKey] = useState("");
   const [activeStep, setActiveStep] = useState(1); // Track which step is active
 
-  const fullSeedPhrase = [
+  const fullSeedPhrase = useMemo(() => [
     "apple",
     "bridge",
     "castle",
@@ -36,7 +36,7 @@ const Step2 = () => {
     "nature",
     "ocean",
     "palace",
-  ];
+], []);
 
   const generateRandomHash = (length) => {
     const chars = "0123456789abcdef";
