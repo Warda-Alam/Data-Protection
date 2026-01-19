@@ -14,18 +14,18 @@ import {
 
 const EncryptionFlowAnimation = () => {
   const [activeStep, setActiveStep] = useState(1);
+  const [completedSteps, setCompletedSteps] = useState(new Set([1]));
   const [symmetricKey, setSymmetricKey] = useState("");
   const [originalMessage, setOriginalMessage] = useState("");
   const [encryptedBlob, setEncryptedBlob] = useState("");
   const [generatedUrl, setGeneratedUrl] = useState("");
 
-  // Generate data once on mount
+  // Initialize with mock data
   useEffect(() => {
-    const key = "AES-256-" + Math.random().toString(36).substring(2, 12).toUpperCase();
-    const message = "Hello! This is a secret message."; // Fixed message
-    // Simulate encryption by creating a "blob" representation
-    const blob = btoa(message + "::" + key).replace(/=/g, ''); // Simple base64 encoding
-    
+    const key =
+      "AES-256-" + Math.random().toString(36).substring(2, 12).toUpperCase();
+    const message = "Hello! This is a secret message.";
+    const blob = btoa(message + "::" + key).replace(/=/g, "");
     const url = `https://secure-share.app/msg#key=${key}&data=${blob.substring(0, 20)}`;
 
     setSymmetricKey(key);
@@ -34,15 +34,45 @@ const EncryptionFlowAnimation = () => {
     setGeneratedUrl(url);
   }, []);
 
+  // Auto-advance steps
   useEffect(() => {
     const timer = setInterval(() => {
       setActiveStep((prev) => {
-        if (prev >= 6) return 1;
-        return prev + 1;
+        if (prev >= 6) {
+          // Reset completed steps when cycle restarts
+          setCompletedSteps(new Set([1]));
+          return 1;
+        }
+
+        const nextStep = prev + 1;
+        // Mark the previous step as completed
+        setCompletedSteps((prevSet) => new Set([...prevSet, nextStep]));
+        return nextStep;
       });
     }, 5000);
     return () => clearInterval(timer);
   }, []);
+
+  // Manually advance steps
+  const handleNextStep = () => {
+    setActiveStep((prev) => {
+      if (prev >= 6) {
+        // Reset completed steps when cycle restarts
+        setCompletedSteps(new Set([1]));
+        return 1;
+      }
+
+      const nextStep = prev + 1;
+      // Mark the previous step as completed
+      setCompletedSteps((prevSet) => new Set([...prevSet, nextStep]));
+      return nextStep;
+    });
+  };
+
+  // Helper to check if a step should be active
+  const isStepActive = (step) => {
+    return completedSteps.has(step);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 p-8">
@@ -74,12 +104,14 @@ const EncryptionFlowAnimation = () => {
             {/* Step 1: Generate Key */}
             <EncryptionStep1
               isActive={activeStep === 1}
+              isCompleted={isStepActive(1)}
               symmetricKey={symmetricKey}
             />
 
             {/* Step 2: Encrypt Message */}
             <EncryptionStep2
               isActive={activeStep === 2}
+              isCompleted={isStepActive(2)}
               symmetricKey={symmetricKey}
               originalMessage={originalMessage}
               encryptedBlob={encryptedBlob}
@@ -88,6 +120,7 @@ const EncryptionFlowAnimation = () => {
             {/* Step 3: Generate URL with Key */}
             <EncryptionStep3
               isActive={activeStep === 3}
+              isCompleted={isStepActive(3)}
               symmetricKey={symmetricKey}
               generatedUrl={generatedUrl}
             />
@@ -108,18 +141,21 @@ const EncryptionFlowAnimation = () => {
             {/* Step 4: Receive URL */}
             <DecryptionStep3
               isActive={activeStep === 4}
+              isCompleted={isStepActive(4)}
               generatedUrl={generatedUrl}
             />
 
             {/* Step 5: Extract Key from URL */}
             <DecryptionStep2
               isActive={activeStep === 5}
+              isCompleted={isStepActive(5)}
               symmetricKey={symmetricKey}
             />
 
             {/* Step 6: Decrypt Message */}
             <DecryptionStep1
               isActive={activeStep === 6}
+              isCompleted={isStepActive(6)}
               symmetricKey={symmetricKey}
               originalMessage={originalMessage}
             />
@@ -138,8 +174,8 @@ const EncryptionFlowAnimation = () => {
                     className={`w-3 h-3 rounded-full transition-all duration-500 ${
                       activeStep === step
                         ? "bg-cyan-500 scale-125 shadow-[0_0_10px_rgba(6,182,212,0.8)]"
-                        : activeStep > step
-                          ? "bg-cyan-400 opacity-50"
+                        : isStepActive(step)
+                          ? "bg-cyan-400 opacity-80"
                           : "bg-slate-700"
                     }`}
                   />
@@ -156,8 +192,8 @@ const EncryptionFlowAnimation = () => {
                     className={`w-3 h-3 rounded-full transition-all duration-500 ${
                       activeStep === step
                         ? "bg-purple-500 scale-125 shadow-[0_0_10px_rgba(168,85,247,0.8)]"
-                        : activeStep > step
-                          ? "bg-purple-400 opacity-50"
+                        : isStepActive(step)
+                          ? "bg-purple-400 opacity-80"
                           : "bg-slate-700"
                     }`}
                   />
@@ -174,8 +210,8 @@ const EncryptionFlowAnimation = () => {
                     className={`w-3 h-3 rounded-full transition-all duration-500 ${
                       activeStep === step
                         ? "bg-pink-500 scale-125 shadow-[0_0_10px_rgba(236,72,153,0.8)]"
-                        : activeStep > step
-                          ? "bg-pink-400 opacity-50"
+                        : isStepActive(step)
+                          ? "bg-pink-400 opacity-80"
                           : "bg-slate-700"
                     }`}
                   />
@@ -186,12 +222,7 @@ const EncryptionFlowAnimation = () => {
 
           <div className="text-center">
             <button
-              onClick={() =>
-                setActiveStep((prev) => {
-                  if (prev >= 6) return 1;
-                  return prev + 1;
-                })
-              }
+              onClick={handleNextStep}
               className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-lg font-medium hover:opacity-90 transition-opacity"
             >
               Next Step
@@ -218,7 +249,7 @@ const EncryptionFlowAnimation = () => {
 };
 
 // Encryption Step 1: Generate Symmetric Key - Fixed height
-const EncryptionStep1 = ({ isActive, symmetricKey }) => {
+const EncryptionStep1 = ({ isActive, isCompleted, symmetricKey }) => {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -240,17 +271,24 @@ const EncryptionStep1 = ({ isActive, symmetricKey }) => {
 
       return () => clearInterval(progressTimer);
     } else {
-      setGenerating(false);
-      setProgress(0);
+      if (isCompleted) {
+        setProgress(100);
+        setGenerating(false);
+      } else {
+        setProgress(0);
+        setGenerating(false);
+      }
     }
-  }, [isActive]);
+  }, [isActive, isCompleted]);
 
   return (
     <div
       className={`relative bg-slate-800/50 rounded-xl p-6 border overflow-hidden transition-all duration-500 min-h-[280px] flex flex-col ${
         isActive
           ? "border-cyan-500 shadow-[0_0_30px_rgba(6,182,212,0.3)] scale-105"
-          : "border-slate-700 opacity-50"
+          : isCompleted
+            ? "border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.1)]"
+            : "border-slate-700 opacity-50"
       }`}
     >
       {isActive && (
@@ -264,12 +302,20 @@ const EncryptionStep1 = ({ isActive, symmetricKey }) => {
         <div className="flex items-center gap-3">
           <div
             className={`p-3 rounded-lg transition-all duration-300 ${
-              isActive ? "bg-cyan-500/20 rotate-0" : "bg-slate-700/50"
+              isActive
+                ? "bg-cyan-500/20 rotate-0"
+                : isCompleted
+                  ? "bg-cyan-400/20"
+                  : "bg-slate-700/50"
             }`}
           >
             <Key
               className={`w-6 h-6 transition-colors ${
-                isActive ? "text-cyan-400 animate-pulse" : "text-slate-500"
+                isActive
+                  ? "text-cyan-400 animate-pulse"
+                  : isCompleted
+                    ? "text-cyan-400"
+                    : "text-slate-500"
               }`}
             />
           </div>
@@ -278,7 +324,7 @@ const EncryptionStep1 = ({ isActive, symmetricKey }) => {
             <p className="text-xs text-slate-400">AES-256 encryption key</p>
           </div>
         </div>
-        {progress === 100 && (
+        {(progress === 100 || isCompleted) && (
           <div className="flex items-center gap-2 text-emerald-400 text-xs">
             <CheckCircle className="w-4 h-4" />
             <span>Ready</span>
@@ -300,7 +346,11 @@ const EncryptionStep1 = ({ isActive, symmetricKey }) => {
 
         <div
           className={`bg-black/40 rounded-lg p-4 font-mono text-sm flex-1 flex flex-col justify-center transition-all duration-300 ${
-            isActive ? "border border-cyan-500/50" : ""
+            isActive
+              ? "border border-cyan-500/50"
+              : isCompleted
+                ? "border border-cyan-400/30"
+                : ""
           }`}
         >
           <div className="text-xs text-slate-400 mb-1">Generated Key:</div>
@@ -311,12 +361,16 @@ const EncryptionStep1 = ({ isActive, symmetricKey }) => {
           >
             <span
               className={`transition-colors truncate ${
-                isActive ? "text-cyan-400" : "text-slate-600"
+                isActive
+                  ? "text-cyan-400"
+                  : isCompleted
+                    ? "text-cyan-400/80"
+                    : "text-slate-600"
               }`}
             >
               {generating ? "Generating..." : symmetricKey}
             </span>
-            {!generating && symmetricKey && (
+            {!generating && symmetricKey && isCompleted && (
               <button className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">
                 <Copy className="w-4 h-4" />
               </button>
@@ -329,7 +383,13 @@ const EncryptionStep1 = ({ isActive, symmetricKey }) => {
 };
 
 // Encryption Step 2: Encrypt Message - Fixed height
-const EncryptionStep2 = ({ isActive, symmetricKey, originalMessage, encryptedBlob }) => {
+const EncryptionStep2 = ({
+  isActive,
+  isCompleted,
+  symmetricKey,
+  originalMessage,
+  encryptedBlob,
+}) => {
   const [encrypting, setEncrypting] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -351,17 +411,24 @@ const EncryptionStep2 = ({ isActive, symmetricKey, originalMessage, encryptedBlo
 
       return () => clearInterval(progressTimer);
     } else {
-      setEncrypting(false);
-      setProgress(0);
+      if (isCompleted) {
+        setProgress(100);
+        setEncrypting(false);
+      } else {
+        setProgress(0);
+        setEncrypting(false);
+      }
     }
-  }, [isActive]);
+  }, [isActive, isCompleted]);
 
   return (
     <div
       className={`relative bg-slate-800/50 overflow-hidden rounded-xl p-6 border transition-all duration-500 min-h-[300px] flex flex-col ${
         isActive
           ? "border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.3)] scale-105"
-          : "border-slate-700 opacity-50"
+          : isCompleted
+            ? "border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.1)]"
+            : "border-slate-700 opacity-50"
       }`}
     >
       {/* Progress bar at top - always visible when isActive */}
@@ -376,12 +443,20 @@ const EncryptionStep2 = ({ isActive, symmetricKey, originalMessage, encryptedBlo
         <div className="flex items-center gap-3">
           <div
             className={`p-3 rounded-lg transition-all ${
-              isActive ? "bg-purple-500/20" : "bg-slate-700/50"
+              isActive
+                ? "bg-purple-500/20"
+                : isCompleted
+                  ? "bg-purple-400/20"
+                  : "bg-slate-700/50"
             }`}
           >
             <Lock
               className={`w-6 h-6 transition-colors ${
-                isActive ? "text-purple-400 animate-pulse" : "text-slate-500"
+                isActive
+                  ? "text-purple-400 animate-pulse"
+                  : isCompleted
+                    ? "text-purple-400"
+                    : "text-slate-500"
               }`}
             />
           </div>
@@ -390,7 +465,7 @@ const EncryptionStep2 = ({ isActive, symmetricKey, originalMessage, encryptedBlo
             <p className="text-xs text-slate-400">Using generated key</p>
           </div>
         </div>
-        {progress === 100 && (
+        {(progress === 100 || isCompleted) && (
           <div className="flex items-center gap-2 text-emerald-400 text-xs">
             <CheckCircle className="w-4 h-4" />
             <span>Encrypted</span>
@@ -400,20 +475,48 @@ const EncryptionStep2 = ({ isActive, symmetricKey, originalMessage, encryptedBlo
 
       <div className="space-y-4 flex-1">
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+          <div
+            className={`rounded-lg p-3 transition-all ${
+              isActive || isCompleted
+                ? "bg-blue-500/10 border border-blue-500/20"
+                : "bg-slate-900/50 border border-slate-700"
+            }`}
+          >
             <div className="flex items-center gap-2 mb-2">
-              <FileText className="w-4 h-4 text-blue-400" />
-              <span className="text-xs text-blue-300 font-medium">Input</span>
+              <FileText
+                className={`w-4 h-4 ${
+                  isActive || isCompleted ? "text-blue-400" : "text-slate-500"
+                }`}
+              />
+              <span
+                className={`text-xs font-medium ${
+                  isActive || isCompleted ? "text-blue-300" : "text-slate-500"
+                }`}
+              >
+                Input
+              </span>
             </div>
-            <p className="text-xs text-slate-300">
-              {originalMessage}
-            </p>
+            <p className="text-xs text-slate-300">{originalMessage}</p>
           </div>
 
-          <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-3">
+          <div
+            className={`rounded-lg p-3 transition-all ${
+              isActive || isCompleted
+                ? "bg-purple-500/10 border border-purple-500/20"
+                : "bg-slate-900/50 border border-slate-700"
+            }`}
+          >
             <div className="flex items-center gap-2 mb-2">
-              <Key className="w-4 h-4 text-purple-400" />
-              <span className="text-xs text-purple-300 font-medium">
+              <Key
+                className={`w-4 h-4 ${
+                  isActive || isCompleted ? "text-purple-400" : "text-slate-500"
+                }`}
+              />
+              <span
+                className={`text-xs font-medium ${
+                  isActive || isCompleted ? "text-purple-300" : "text-slate-500"
+                }`}
+              >
                 Key Used
               </span>
             </div>
@@ -421,25 +524,37 @@ const EncryptionStep2 = ({ isActive, symmetricKey, originalMessage, encryptedBlo
           </div>
         </div>
 
-        <div className="bg-black/40 rounded-lg p-4 flex-1 flex flex-col">
+        <div
+          className={`rounded-lg p-4 flex-1 flex flex-col transition-all ${
+            isActive || isCompleted ? "bg-black/40" : "bg-black/20"
+          }`}
+        >
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-slate-400">Encrypted Output:</span>
             <span className="text-xs text-purple-400">Base64</span>
           </div>
           <div
-            className={`font-mono text-xs p-3 rounded bg-black/50 transition-all duration-300 flex-1 flex items-center ${
-              isActive ? "border border-purple-500/30" : ""
+            className={`font-mono text-xs p-3 rounded transition-all duration-300 flex-1 flex items-center ${
+              isActive
+                ? "border border-purple-500/30"
+                : isCompleted
+                  ? "border border-purple-400/20"
+                  : "bg-black/50"
             }`}
           >
             <div className="flex items-center justify-between w-full">
               <span
                 className={`break-all transition-colors ${
-                  encrypting ? "text-purple-400/50" : "text-purple-400"
+                  encrypting
+                    ? "text-purple-400/50"
+                    : isActive || isCompleted
+                      ? "text-purple-400"
+                      : "text-slate-600"
                 }`}
               >
                 {encrypting ? "Encrypting..." : encryptedBlob}
               </span>
-              {!encrypting && (
+              {!encrypting && isCompleted && (
                 <button className="text-xs text-purple-400 hover:text-purple-300 transition-colors">
                   <Copy className="w-4 h-4" />
                 </button>
@@ -448,14 +563,17 @@ const EncryptionStep2 = ({ isActive, symmetricKey, originalMessage, encryptedBlo
           </div>
         </div>
       </div>
-
-      {/* Removed the bottom progress bar */}
     </div>
   );
 };
 
 // Encryption Step 3: Generate URL with Key - Fixed height
-const EncryptionStep3 = ({ isActive, symmetricKey, generatedUrl }) => {
+const EncryptionStep3 = ({
+  isActive,
+  isCompleted,
+  symmetricKey,
+  generatedUrl,
+}) => {
   const [buildingUrl, setBuildingUrl] = useState(false);
   const [urlParts, setUrlParts] = useState([]);
 
@@ -488,29 +606,54 @@ const EncryptionStep3 = ({ isActive, symmetricKey, generatedUrl }) => {
 
       return () => clearInterval(interval);
     } else {
-      setBuildingUrl(false);
-      setUrlParts([]);
+      if (isCompleted) {
+        setBuildingUrl(false);
+        const parts = [
+          "https://",
+          "secure-share.app/",
+          "msg#",
+          "key=",
+          symmetricKey,
+          "&",
+          "data=",
+          "encrypted_data...",
+        ];
+        setUrlParts(parts);
+      } else {
+        setBuildingUrl(false);
+        setUrlParts([]);
+      }
     }
-  }, [isActive, symmetricKey]);
+  }, [isActive, isCompleted, symmetricKey]);
 
   return (
     <div
       className={`relative bg-slate-800/50 rounded-xl p-6 border transition-all duration-500 min-h-[280px] flex flex-col ${
         isActive
           ? "border-pink-500 shadow-[0_0_30px_rgba(236,72,153,0.3)] scale-105"
-          : "border-slate-700 opacity-50"
+          : isCompleted
+            ? "border-pink-400/50 shadow-[0_0_15px_rgba(236,72,153,0.1)]"
+            : "border-slate-700 opacity-50"
       }`}
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div
             className={`p-3 rounded-lg transition-all ${
-              isActive ? "bg-pink-500/20" : "bg-slate-700/50"
+              isActive
+                ? "bg-pink-500/20"
+                : isCompleted
+                  ? "bg-pink-400/20"
+                  : "bg-slate-700/50"
             }`}
           >
             <Link
               className={`w-6 h-6 transition-colors ${
-                isActive ? "text-pink-400 animate-pulse" : "text-slate-500"
+                isActive
+                  ? "text-pink-400 animate-pulse"
+                  : isCompleted
+                    ? "text-pink-400"
+                    : "text-slate-500"
               }`}
             />
           </div>
@@ -519,7 +662,7 @@ const EncryptionStep3 = ({ isActive, symmetricKey, generatedUrl }) => {
             <p className="text-xs text-slate-400">Embed key in URL fragment</p>
           </div>
         </div>
-        {!buildingUrl && urlParts.length > 0 && (
+        {!buildingUrl && urlParts.length > 0 && isCompleted && (
           <div className="flex items-center gap-2 text-emerald-400 text-xs">
             <CheckCircle className="w-4 h-4" />
             <span>Ready to Share</span>
@@ -528,24 +671,55 @@ const EncryptionStep3 = ({ isActive, symmetricKey, generatedUrl }) => {
       </div>
 
       <div className="space-y-4 flex-1">
-        <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/30 rounded-lg p-4 flex-1 flex flex-col">
+        <div
+          className={`rounded-lg p-4 flex-1 flex flex-col transition-all ${
+            isActive || isCompleted
+              ? "bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/30"
+              : "bg-slate-900/30 border border-slate-700"
+          }`}
+        >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-pink-400 font-medium">
+            <span
+              className={`text-xs font-medium transition-colors ${
+                isActive || isCompleted ? "text-pink-400" : "text-slate-500"
+              }`}
+            >
               Shareable Link
             </span>
-            <button className="text-xs text-pink-400 hover:text-pink-300 transition-colors">
-              <ExternalLink className="w-4 h-4" />
-            </button>
+            {isCompleted && (
+              <button className="text-xs text-pink-400 hover:text-pink-300 transition-colors">
+                <ExternalLink className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <div className="font-mono text-xs break-all flex-1 flex items-center">
-            <span className="text-pink-300">
+            <span
+              className={`transition-colors ${
+                isActive || isCompleted ? "text-pink-300" : "text-slate-600"
+              }`}
+            >
               {Array.isArray(urlParts) &&
                 urlParts.map((part, index) => {
-                  let color = "text-pink-300";
-                  if (part && part.includes("key=")) color = "text-cyan-400";
-                  if (part === symmetricKey) color = "text-cyan-300 font-bold";
-                  if (part && part.includes("data=")) color = "text-purple-400";
-                  if (part === "encrypted_data...") color = "text-purple-300";
+                  let color =
+                    isActive || isCompleted
+                      ? "text-pink-300"
+                      : "text-slate-600";
+                  if (
+                    (isActive || isCompleted) &&
+                    part &&
+                    part.includes("key=")
+                  )
+                    color = "text-cyan-400";
+                  if ((isActive || isCompleted) && part === symmetricKey)
+                    color = "text-cyan-300 font-bold";
+                  if (
+                    (isActive || isCompleted) &&
+                    part &&
+                    part.includes("data=")
+                  )
+                    color = "text-purple-400";
+                  if ((isActive || isCompleted) && part === "encrypted_data...")
+                    color = "text-purple-300";
 
                   return (
                     <span key={index} className={color}>
@@ -568,11 +742,21 @@ const EncryptionStep3 = ({ isActive, symmetricKey, generatedUrl }) => {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs text-slate-400">Base URL:</span>
-              <span className="text-xs text-pink-400">secure-share.app</span>
+              <span
+                className={`text-xs ${
+                  isActive || isCompleted ? "text-pink-400" : "text-slate-600"
+                }`}
+              >
+                secure-share.app
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-slate-400">Key Parameter:</span>
-              <span className="text-xs text-cyan-400">
+              <span
+                className={`text-xs ${
+                  isActive || isCompleted ? "text-cyan-400" : "text-slate-600"
+                }`}
+              >
                 #key=
                 {symmetricKey
                   ? symmetricKey.substring(0, 12) + "..."
@@ -581,7 +765,13 @@ const EncryptionStep3 = ({ isActive, symmetricKey, generatedUrl }) => {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-slate-400">Encrypted Data:</span>
-              <span className="text-xs text-purple-400">Base64 encoded</span>
+              <span
+                className={`text-xs ${
+                  isActive || isCompleted ? "text-purple-400" : "text-slate-600"
+                }`}
+              >
+                Base64 encoded
+              </span>
             </div>
           </div>
         </div>
@@ -591,7 +781,7 @@ const EncryptionStep3 = ({ isActive, symmetricKey, generatedUrl }) => {
 };
 
 // Decryption Step 3: Receive URL - Fixed height
-const DecryptionStep3 = ({ isActive, generatedUrl }) => {
+const DecryptionStep3 = ({ isActive, isCompleted, generatedUrl }) => {
   const [receiving, setReceiving] = useState(false);
 
   useEffect(() => {
@@ -609,19 +799,29 @@ const DecryptionStep3 = ({ isActive, generatedUrl }) => {
       className={`relative bg-slate-800/50 rounded-xl p-6 border transition-all duration-500 min-h-[240px] flex flex-col ${
         isActive
           ? "border-pink-500 shadow-[0_0_30px_rgba(236,72,153,0.3)] scale-105"
-          : "border-slate-700 opacity-50"
+          : isCompleted
+            ? "border-pink-400/50 shadow-[0_0_15px_rgba(236,72,153,0.1)]"
+            : "border-slate-700 opacity-50"
       }`}
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div
             className={`p-3 rounded-lg transition-all ${
-              isActive ? "bg-pink-500/20" : "bg-slate-700/50"
+              isActive
+                ? "bg-pink-500/20"
+                : isCompleted
+                  ? "bg-pink-400/20"
+                  : "bg-slate-700/50"
             }`}
           >
             <Download
               className={`w-6 h-6 transition-colors ${
-                isActive ? "text-pink-400" : "text-slate-500"
+                isActive
+                  ? "text-pink-400"
+                  : isCompleted
+                    ? "text-pink-400"
+                    : "text-slate-500"
               }`}
             />
           </div>
@@ -635,15 +835,29 @@ const DecryptionStep3 = ({ isActive, generatedUrl }) => {
             Receiving...
           </div>
         )}
+        {isCompleted && !isActive && (
+          <div className="flex items-center gap-2 text-emerald-400 text-xs">
+            <CheckCircle className="w-4 h-4" />
+            <span>Received</span>
+          </div>
+        )}
       </div>
 
       <div
-        className={`bg-gradient-to-r from-pink-500/10 to-purple-500/10 border rounded-lg p-4 transition-all duration-300 flex-1 flex flex-col ${
-          isActive ? "border-pink-500/30 scale-105" : "border-slate-700"
+        className={`rounded-lg p-4 transition-all duration-300 flex-1 flex flex-col ${
+          isActive
+            ? "bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/30 scale-105"
+            : isCompleted
+              ? "bg-gradient-to-r from-pink-500/5 to-purple-500/5 border border-pink-400/20"
+              : "bg-slate-900/30 border border-slate-700"
         }`}
       >
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-pink-400 font-medium">
+          <span
+            className={`text-xs font-medium transition-colors ${
+              isActive || isCompleted ? "text-pink-400" : "text-slate-500"
+            }`}
+          >
             Incoming Link
           </span>
           {isActive && (
@@ -652,17 +866,23 @@ const DecryptionStep3 = ({ isActive, generatedUrl }) => {
               <span className="text-xs text-emerald-400">Live</span>
             </div>
           )}
+          {isCompleted && !isActive && (
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+              <span className="text-xs text-emerald-400">Ready</span>
+            </div>
+          )}
         </div>
         <div
           className={`font-mono text-xs break-all transition-colors flex-1 flex items-center ${
-            isActive ? "text-pink-300" : "text-slate-600"
+            isActive || isCompleted ? "text-pink-300" : "text-slate-600"
           }`}
         >
           {generatedUrl}
         </div>
       </div>
 
-      {isActive && (
+      {(isActive || isCompleted) && (
         <div className="mt-4 space-y-2">
           <div className="flex items-center justify-between text-xs">
             <span className="text-slate-400">URL Analysis:</span>
@@ -679,7 +899,7 @@ const DecryptionStep3 = ({ isActive, generatedUrl }) => {
 };
 
 // Decryption Step 2: Extract Key from URL - Fixed height
-const DecryptionStep2 = ({ isActive, symmetricKey }) => {
+const DecryptionStep2 = ({ isActive, isCompleted, symmetricKey }) => {
   const [extracting, setExtracting] = useState(false);
   const [extractedKey, setExtractedKey] = useState("");
 
@@ -687,7 +907,7 @@ const DecryptionStep2 = ({ isActive, symmetricKey }) => {
     let interval;
     let timeout;
 
-    if (isActive) {
+    if (isActive && symmetricKey) {
       setExtracting(true);
       setExtractedKey("");
 
@@ -695,7 +915,8 @@ const DecryptionStep2 = ({ isActive, symmetricKey }) => {
         let i = 0;
         interval = setInterval(() => {
           if (i < symmetricKey.length) {
-            setExtractedKey((prev) => prev + symmetricKey[i]);
+            const nextChar = symmetricKey[i];
+            setExtractedKey((prev) => (nextChar ? prev + nextChar : prev));
             i++;
           } else {
             clearInterval(interval);
@@ -704,34 +925,49 @@ const DecryptionStep2 = ({ isActive, symmetricKey }) => {
         }, 50);
       }, 500);
     } else {
-      setExtracting(false);
-      setExtractedKey("");
+      if (isCompleted) {
+        setExtracting(false);
+        setExtractedKey(symmetricKey || "");
+      } else {
+        setExtracting(false);
+        setExtractedKey("");
+      }
     }
 
     return () => {
       clearTimeout(timeout);
       clearInterval(interval);
     };
-  }, [isActive, symmetricKey]);
+  }, [isActive, isCompleted, symmetricKey]);
 
   return (
     <div
       className={`relative bg-slate-800/50 rounded-xl p-6 border transition-all duration-500 min-h-[280px] flex flex-col ${
         isActive
           ? "border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.3)] scale-105"
-          : "border-slate-700 opacity-50"
+          : isCompleted
+            ? "border-purple-400/50 shadow-[0_0_15px_rgba(168,85,247,0.1)]"
+            : "border-slate-700 opacity-50"
       }`}
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div
             className={`p-3 rounded-lg transition-all ${
-              isActive ? "bg-purple-500/20" : "bg-slate-700/50"
+              isActive
+                ? "bg-purple-500/20"
+                : isCompleted
+                  ? "bg-purple-400/20"
+                  : "bg-slate-700/50"
             }`}
           >
             <Key
               className={`w-6 h-6 transition-colors ${
-                isActive ? "text-purple-400 animate-pulse" : "text-slate-500"
+                isActive
+                  ? "text-purple-400 animate-pulse"
+                  : isCompleted
+                    ? "text-purple-400"
+                    : "text-slate-500"
               }`}
             />
           </div>
@@ -740,7 +976,7 @@ const DecryptionStep2 = ({ isActive, symmetricKey }) => {
             <p className="text-xs text-slate-400">Parse URL fragment</p>
           </div>
         </div>
-        {!extracting && extractedKey && (
+        {!extracting && extractedKey && isCompleted && (
           <div className="flex items-center gap-2 text-emerald-400 text-xs">
             <CheckCircle className="w-4 h-4" />
             <span>Extracted</span>
@@ -759,43 +995,61 @@ const DecryptionStep2 = ({ isActive, symmetricKey }) => {
             <div className="flex items-center justify-between">
               <span className="text-slate-500">Find key parameter:</span>
               <span
-                className={`${isActive ? "text-purple-400" : "text-slate-500"}`}
+                className={
+                  isActive || isCompleted ? "text-purple-400" : "text-slate-500"
+                }
               >
-                {isActive ? "Searching..." : "Ready"}
+                {isActive ? "Searching..." : isCompleted ? "Found ✓" : "Ready"}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-slate-500">Extract key value:</span>
               <span
-                className={`${extractedKey ? "text-emerald-400" : "text-slate-500"}`}
+                className={
+                  extractedKey && (isActive || isCompleted)
+                    ? "text-emerald-400"
+                    : "text-slate-500"
+                }
               >
-                {extractedKey ? "Found ✓" : "Pending"}
+                {extractedKey && (isActive || isCompleted)
+                  ? "Found ✓"
+                  : "Pending"}
               </span>
             </div>
           </div>
         </div>
 
         <div
-          className={`bg-black/40 rounded-lg p-4 transition-all duration-300 flex-1 flex flex-col ${
+          className={`rounded-lg p-4 transition-all duration-300 flex-1 flex flex-col ${
             isActive
-              ? "border-2 border-purple-500/50"
-              : "border border-slate-700"
+              ? "bg-black/40 border-2 border-purple-500/50"
+              : isCompleted
+                ? "bg-black/40 border border-purple-400/30"
+                : "bg-black/20 border border-slate-700"
           }`}
         >
           <div className="text-xs text-slate-400 mb-2">Extracted Key:</div>
           <div className="font-mono text-sm flex-1 flex items-center">
             <span
               className={`transition-colors ${
-                extracting ? "text-purple-400/70" : "text-purple-400"
+                extracting
+                  ? "text-purple-400/70"
+                  : isActive || isCompleted
+                    ? "text-purple-400"
+                    : "text-slate-600"
               }`}
             >
-              {extracting ? "Extracting" : extractedKey || "Waiting for URL..."}
+              {extracting
+                ? "Extracting"
+                : isCompleted
+                  ? extractedKey || symmetricKey || "Key extracted"
+                  : "Waiting for URL..."}
               {extracting && <span className="animate-pulse ml-1">|</span>}
             </span>
           </div>
         </div>
 
-        {extractedKey && !extracting && (
+        {extractedKey && !extracting && isCompleted && (
           <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3">
             <div className="flex items-center gap-2 text-emerald-400 text-xs">
               <Shield className="w-4 h-4" />
@@ -809,7 +1063,12 @@ const DecryptionStep2 = ({ isActive, symmetricKey }) => {
 };
 
 // Decryption Step 1: Decrypt Message - Fixed height
-const DecryptionStep1 = ({ isActive, symmetricKey, originalMessage }) => {
+const DecryptionStep1 = ({
+  isActive,
+  isCompleted,
+  symmetricKey,
+  originalMessage,
+}) => {
   const [displayText, setDisplayText] = useState("");
   const [progress, setProgress] = useState(0);
 
@@ -817,10 +1076,10 @@ const DecryptionStep1 = ({ isActive, symmetricKey, originalMessage }) => {
     if (isActive) {
       setDisplayText("");
       setProgress(0);
-      
+
       // Progress Bar Animation
       const pInterval = setInterval(() => {
-        setProgress(prev => (prev < 100 ? prev + 5 : 100));
+        setProgress((prev) => (prev < 100 ? prev + 5 : 100));
       }, 50);
 
       // Typing Animation
@@ -838,36 +1097,101 @@ const DecryptionStep1 = ({ isActive, symmetricKey, originalMessage }) => {
         clearInterval(pInterval);
         clearInterval(tInterval);
       };
+    } else {
+      if (isCompleted) {
+        setDisplayText(originalMessage);
+        setProgress(100);
+      } else {
+        setDisplayText("");
+        setProgress(0);
+      }
     }
-  }, [isActive, originalMessage]);
+  }, [isActive, isCompleted, originalMessage]);
 
   return (
-    <div className={`relative bg-slate-800/40 rounded-xl p-5 border transition-all duration-500 h-[220px] flex flex-col ${
-      isActive ? "border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)] scale-[1.02]" : "border-slate-700/50 opacity-60"
-    }`}>
+    <div
+      className={`relative bg-slate-800/40 rounded-xl p-5 border transition-all duration-500 h-[220px] flex flex-col ${
+        isActive
+          ? "border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)] scale-[1.02]"
+          : isCompleted
+            ? "border-emerald-400/50 shadow-[0_0_10px_rgba(16,185,129,0.1)]"
+            : "border-slate-700/50 opacity-60"
+      }`}
+    >
       <div className="flex items-center gap-3 mb-4">
-        <div className={`p-2 rounded-lg ${isActive ? "bg-emerald-500/20" : "bg-slate-700/30"}`}>
-          <Shield className={`w-5 h-5 ${isActive ? "text-emerald-400" : "text-slate-500"}`} />
+        <div
+          className={`p-2 rounded-lg ${
+            isActive
+              ? "bg-emerald-500/20"
+              : isCompleted
+                ? "bg-emerald-400/20"
+                : "bg-slate-700/30"
+          }`}
+        >
+          <Shield
+            className={`w-5 h-5 ${
+              isActive
+                ? "text-emerald-400"
+                : isCompleted
+                  ? "text-emerald-400"
+                  : "text-slate-500"
+            }`}
+          />
         </div>
-        <h3 className="font-medium text-slate-200 text-sm">Final Decryption</h3>
+        <h3
+          className={`font-medium text-sm transition-colors ${
+            isActive || isCompleted ? "text-slate-200" : "text-slate-500"
+          }`}
+        >
+          Final Decryption
+        </h3>
       </div>
 
       <div className="flex-1 space-y-3">
-        <div className="bg-black/60 p-3 rounded border border-emerald-900/30 min-h-[80px]">
-          <div className="text-[10px] text-emerald-500/50 uppercase mb-1 font-bold">Decrypted Content:</div>
-          <p className="text-sm font-mono text-emerald-100">
+        <div
+          className={`p-3 rounded border min-h-[80px] transition-all ${
+            isActive || isCompleted
+              ? "bg-black/60 border-emerald-900/30"
+              : "bg-black/30 border-slate-700/30"
+          }`}
+        >
+          <div
+            className={`text-[10px] uppercase mb-1 font-bold transition-colors ${
+              isActive || isCompleted
+                ? "text-emerald-500/50"
+                : "text-slate-500/50"
+            }`}
+          >
+            Decrypted Content:
+          </div>
+          <p
+            className={`text-sm font-mono transition-colors ${
+              isActive || isCompleted ? "text-emerald-100" : "text-slate-500"
+            }`}
+          >
             {displayText}
-            {isActive && progress < 100 && <span className="animate-pulse">_</span>}
+            {isActive && progress < 100 && (
+              <span className="animate-pulse">_</span>
+            )}
           </p>
         </div>
-        
+
         <div className="h-1 w-full bg-slate-700 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-emerald-500 transition-all duration-100" 
+          <div
+            className={`h-full transition-all duration-100 ${
+              isActive || isCompleted ? "bg-emerald-500" : "bg-slate-600"
+            }`}
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
+
+      {isCompleted && !isActive && (
+        <div className="absolute bottom-3 right-3 flex items-center gap-1 text-emerald-400 text-xs">
+          <CheckCircle className="w-3 h-3" />
+          <span>Decrypted</span>
+        </div>
+      )}
     </div>
   );
 };
