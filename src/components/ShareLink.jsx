@@ -13,6 +13,26 @@ import {
   Loader,
 } from "lucide-react";
 
+// Add keyframe animations
+const styles = `
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  @keyframes shimmer {
+    0%, 100% { background-position: -1000px 0; }
+    50% { background-position: 1000px 0; }
+  }
+`;
+
+// Inject styles into document
+if (typeof document !== "undefined") {
+  const styleSheet = document.createElement("style");
+  styleSheet.textContent = styles;
+  document.head.appendChild(styleSheet);
+}
+
 const DualPaneEncryption = () => {
   // ========== SENDER STATE ==========
   const [senderKey, setSenderKey] = useState("");
@@ -27,14 +47,18 @@ const DualPaneEncryption = () => {
 
   // ========== RECEIVER STATE ==========
   const [pastedUrl, setPastedUrl] = useState("");
+  const [manualKey, setManualKey] = useState("");
   const [manualEncryptedData, setManualEncryptedData] = useState("");
   const [receiverKey, setReceiverKey] = useState("");
   const [decryptedMessage, setDecryptedMessage] = useState("");
   const [receiverStatus, setReceiverStatus] = useState("Ready");
   const [extractKeyError, setExtractKeyError] = useState("");
   const [decryptError, setDecryptError] = useState("");
+  const [manualDecryptError, setManualDecryptError] = useState("");
   const [loadingExtract, setLoadingExtract] = useState(false);
   const [loadingDecrypt, setLoadingDecrypt] = useState(false);
+  const [loadingManualDecrypt, setLoadingManualDecrypt] = useState(false);
+  const [receiverTab, setReceiverTab] = useState("url"); // "url" or "manual"
 
   // ========== HANDLERS: SENDER SIDE ==========
   const generateSymmetricKey = async () => {
@@ -150,7 +174,7 @@ const DualPaneEncryption = () => {
   };
 
   // ========== HANDLERS: RECEIVER SIDE ==========
-  const extractKeyFromUrl = async () => {
+  const extractAndDecryptFromUrl = async () => {
     if (!pastedUrl) {
       setExtractKeyError("Please paste a URL");
       return;
@@ -158,8 +182,10 @@ const DualPaneEncryption = () => {
 
     try {
       setLoadingExtract(true);
-      setReceiverStatus("Extracting...");
+      setReceiverStatus("Step 1: Extracting key and encrypted data...");
       setExtractKeyError("");
+      setDecryptError("");
+      setDecryptedMessage("");
 
       // Simulate processing time
       await new Promise((resolve) => setTimeout(resolve, 600));
@@ -178,59 +204,18 @@ const DualPaneEncryption = () => {
 
       const decodedKey = decodeURIComponent(keyParam);
       setReceiverKey(decodedKey);
-      setReceiverStatus("Extracted");
-      setLoadingExtract(false);
-    } catch (error) {
-      setExtractKeyError("Failed to parse URL: " + error.message);
-      setReceiverStatus("Error");
-      setLoadingExtract(false);
-      console.error("URL parsing failed:", error);
-    }
-  };
 
-  const decryptMessage = async () => {
-    if (!receiverKey) {
-      setDecryptError("Please extract or enter a key first");
-      return;
-    }
-
-    // Use manually entered data if available, otherwise extract from URL
-    const dataSource = manualEncryptedData || pastedUrl;
-
-    if (!dataSource) {
-      setDecryptError(
-        "Please provide either an encrypted message or a shared URL",
-      );
-      return;
-    }
-
-    try {
-      setLoadingDecrypt(true);
-      setReceiverStatus("Decrypting...");
-      setDecryptError("");
+      // Now decrypt with the extracted key
+      setLoadingExtract(true);
+      setReceiverStatus("Step 2: Decrypting message...");
 
       // Simulate processing time
       await new Promise((resolve) => setTimeout(resolve, 700));
 
-      let encryptedBase64 = manualEncryptedData;
-
-      // If no manual data, extract from URL
-      if (!manualEncryptedData && pastedUrl) {
-        const urlObj = new URL(pastedUrl, window.location.origin);
-        const dataParam = urlObj.hash.split("data=")[1];
-
-        if (!dataParam) {
-          setDecryptError("Encrypted data not found in URL");
-          setReceiverStatus("Error");
-          setLoadingDecrypt(false);
-          return;
-        }
-
-        encryptedBase64 = decodeURIComponent(dataParam);
-      }
+      const encryptedBase64 = decodeURIComponent(dataParam);
 
       // Import the key
-      const binaryString = atob(receiverKey);
+      const binaryString = atob(decodedKey);
       const keyBytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         keyBytes[i] = binaryString.charCodeAt(i);
@@ -264,13 +249,77 @@ const DualPaneEncryption = () => {
 
       const decryptedText = new TextDecoder().decode(decryptedBuffer);
       setDecryptedMessage(decryptedText);
-      setReceiverStatus("Decrypted");
-      setLoadingDecrypt(false);
+      setReceiverStatus("✓ Message successfully decrypted!");
+      setLoadingExtract(false);
     } catch (error) {
-      setDecryptError("Decryption failed: " + error.message);
+      setExtractKeyError("Failed: " + error.message);
+      setReceiverStatus("Error");
+      setLoadingExtract(false);
+      console.error("Extract and decrypt failed:", error);
+    }
+  };
+
+  const decryptMessageManual = async () => {
+    if (!manualKey) {
+      setManualDecryptError("Please enter your key");
+      return;
+    }
+
+    if (!manualEncryptedData) {
+      setManualDecryptError("Please enter encrypted data");
+      return;
+    }
+
+    try {
+      setLoadingManualDecrypt(true);
+      setReceiverStatus("Decrypting...");
+      setManualDecryptError("");
+
+      // Simulate processing time
+      await new Promise((resolve) => setTimeout(resolve, 700));
+
+      // Import the key
+      const binaryString = atob(manualKey);
+      const keyBytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        keyBytes[i] = binaryString.charCodeAt(i);
+      }
+
+      const cryptoKey = await window.crypto.subtle.importKey(
+        "raw",
+        keyBytes,
+        { name: "AES-GCM", length: 256 },
+        true,
+        ["encrypt", "decrypt"],
+      );
+
+      // Decode the encrypted data
+      const encryptedBinary = atob(manualEncryptedData);
+      const encryptedBytes = new Uint8Array(encryptedBinary.length);
+      for (let i = 0; i < encryptedBinary.length; i++) {
+        encryptedBytes[i] = encryptedBinary.charCodeAt(i);
+      }
+
+      // Extract IV (first 12 bytes) and encrypted data
+      const iv = encryptedBytes.slice(0, 12);
+      const encryptedContent = encryptedBytes.slice(12);
+
+      // Decrypt
+      const decryptedBuffer = await window.crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: iv },
+        cryptoKey,
+        encryptedContent,
+      );
+
+      const decryptedText = new TextDecoder().decode(decryptedBuffer);
+      setDecryptedMessage(decryptedText);
+      setReceiverStatus("Decrypted");
+      setLoadingManualDecrypt(false);
+    } catch (error) {
+      setManualDecryptError("Decryption failed: " + error.message);
       setDecryptedMessage("");
       setReceiverStatus("Error");
-      setLoadingDecrypt(false);
+      setLoadingManualDecrypt(false);
       console.error("Decryption failed:", error);
     }
   };
@@ -490,169 +539,310 @@ const DualPaneEncryption = () => {
               </p>
             </div>
 
-            {/* Module 4: Receive Shared URL */}
-            <div className="bg-slate-900/60 border border-cyan-500/30 rounded-lg p-6 backdrop-blur-sm hover:border-cyan-400/60 transition-all duration-300">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-cyan-500/20 rounded-lg">
-                  <Download className="w-5 h-5 text-cyan-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-white">
-                  Receive Shared URL
-                </h3>
-              </div>
-
-              <p className="text-slate-400 text-sm mb-4">
-                Paste the shared link here to extract the key and encrypted data
-              </p>
-
-              <textarea
-                value={pastedUrl}
-                onChange={(e) => {
-                  setPastedUrl(e.target.value);
-                  setExtractKeyError("");
-                }}
-                placeholder="Paste the shared URL here..."
-                className="w-full h-24 px-4 py-3 bg-black/40 border border-cyan-500/20 rounded-lg text-white placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none transition-colors resize-none font-mono text-xs"
-              />
-
+            {/* Tab Navigation */}
+            <div className="flex gap-2 bg-slate-900/40 p-1 rounded-lg border border-slate-700/50">
               <button
-                onClick={extractKeyFromUrl}
-                disabled={!pastedUrl || loadingExtract}
-                className="w-full mt-4 px-4 py-3 bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 disabled:from-slate-600 disabled:to-slate-600 text-black font-semibold rounded-lg transition-all duration-300 hover:shadow-[0_0_20px_rgba(34,211,238,0.4)] disabled:cursor-not-allowed active:scale-95 flex items-center justify-center gap-2"
-              >
-                {loadingExtract && <Loader className="w-4 h-4 animate-spin" />}
-                {loadingExtract ? "Extracting..." : "Extract Key from URL"}
-              </button>
-
-              {receiverKey && (
-                <div className="mt-4 p-4 bg-black/40 rounded-lg border border-cyan-500/20">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-slate-400">
-                      Extracted Key:
-                    </span>
-                    <CheckCircle className="w-4 h-4 text-emerald-400" />
-                  </div>
-                  <div className="font-mono text-xs text-cyan-300 break-all bg-black/60 p-3 rounded border border-cyan-500/20">
-                    {receiverKey}
-                  </div>
-                </div>
-              )}
-
-              {extractKeyError && (
-                <div className="mt-4 p-4 bg-red-500/10 rounded-lg border border-red-500/30 flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-red-300 text-sm">{extractKeyError}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Module 4.5: Manual Encrypted Data Input */}
-            <div className="bg-slate-900/60 border border-pink-500/30 rounded-lg p-6 backdrop-blur-sm hover:border-pink-400/60 transition-all duration-300">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-pink-500/20 rounded-lg">
-                  <Lock className="w-5 h-5 text-pink-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-white">
-                  Or Enter Encrypted Data Directly
-                </h3>
-              </div>
-
-              <p className="text-slate-400 text-sm mb-4">
-                Paste encrypted message directly (instead of using a shared URL)
-              </p>
-
-              <textarea
-                value={manualEncryptedData}
-                onChange={(e) => {
-                  setManualEncryptedData(e.target.value);
+                onClick={() => {
+                  setReceiverTab("url");
+                  setDecryptedMessage("");
+                  setExtractKeyError("");
                   setDecryptError("");
                 }}
-                placeholder="Paste encrypted data (Base64 format) here..."
-                className={`w-full h-20 px-4 py-3 bg-black/40 border rounded-lg text-white placeholder-slate-500 focus:outline-none transition-colors resize-none font-mono text-xs ${
-                  manualEncryptedData && decryptError
-                    ? "border-red-500/50 focus:border-red-500"
-                    : "border-pink-500/20 focus:border-pink-500/50"
+                className={`flex-1 px-4 py-3 rounded-md font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
+                  receiverTab === "url"
+                    ? "bg-cyan-600 text-white shadow-lg"
+                    : "text-slate-400 hover:text-white"
                 }`}
-              />
-
-              {manualEncryptedData && !decryptError && (
-                <div className="mt-3 p-3 bg-pink-500/10 rounded border border-pink-500/20">
-                  <p className="text-pink-300 text-xs">
-                    ✓ Ready to decrypt with your key
-                  </p>
-                </div>
-              )}
-
-              {manualEncryptedData && decryptError && (
-                <div className="mt-3 p-3 bg-red-500/10 rounded border border-red-500/30 flex items-start gap-3">
-                  <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-red-300 text-xs">{decryptError}</p>
-                </div>
-              )}
+              >
+                <Link className="w-4 h-4" />
+                Decrypt from URL
+              </button>
+              <button
+                onClick={() => {
+                  setReceiverTab("manual");
+                  setDecryptedMessage("");
+                  setManualDecryptError("");
+                }}
+                className={`flex-1 px-4 py-3 rounded-md font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
+                  receiverTab === "manual"
+                    ? "bg-purple-600 text-white shadow-lg"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Key className="w-4 h-4" />
+                Manual Input
+              </button>
             </div>
 
-            {/* Module 5: Decrypt Message */}
-            <div className="bg-slate-900/60 border border-purple-500/30 rounded-lg p-6 backdrop-blur-sm hover:border-purple-400/60 transition-all duration-300">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-purple-500/20 rounded-lg">
-                  <Shield className="w-5 h-5 text-purple-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-white">
-                  Decrypt Message
-                </h3>
-              </div>
-
-              <p className="text-slate-400 text-sm mb-4">
-                Use the extracted key to decrypt the original message
-              </p>
-
-              <button
-                onClick={decryptMessage}
-                disabled={
-                  !receiverKey ||
-                  (!pastedUrl && !manualEncryptedData) ||
-                  loadingDecrypt
-                }
-                className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 disabled:from-slate-600 disabled:to-slate-600 text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] disabled:cursor-not-allowed active:scale-95 flex items-center justify-center gap-2"
-              >
-                {loadingDecrypt && <Loader className="w-4 h-4 animate-spin" />}
-                {loadingDecrypt ? "Decrypting..." : "Decrypt Message"}
-              </button>
-
-              {decryptedMessage && (
-                <div className="mt-4 p-4 bg-black/40 rounded-lg border border-purple-500/20">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-slate-400">
-                      Decrypted Content:
-                    </span>
-                    <CheckCircle className="w-4 h-4 text-emerald-400" />
+            {/* Tab 1: URL-Based Decryption */}
+            {receiverTab === "url" && (
+              <div className="space-y-4">
+                {/* Paste URL */}
+                <div className="bg-slate-900/60 border border-cyan-500/30 rounded-lg p-6 backdrop-blur-sm hover:border-cyan-400/60 transition-all duration-300">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-3 bg-cyan-500/20 rounded-lg">
+                      <Link className="w-5 h-5 text-cyan-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white">
+                      Paste Shared URL
+                    </h3>
                   </div>
-                  <div className="bg-black/60 p-4 rounded border border-purple-500/20 min-h-24">
+
+                  <p className="text-slate-400 text-sm mb-4">
+                    Paste the shared link. One click will extract the key and
+                    decrypt your message.
+                  </p>
+
+                  <textarea
+                    value={pastedUrl}
+                    onChange={(e) => {
+                      setPastedUrl(e.target.value);
+                      setExtractKeyError("");
+                      setDecryptedMessage("");
+                      setReceiverKey("");
+                    }}
+                    placeholder="Paste the shared URL here..."
+                    className="w-full h-20 px-4 py-3 bg-black/40 border border-cyan-500/20 rounded-lg text-white placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none transition-colors resize-none font-mono text-xs"
+                  />
+
+                  {/* Process Flow Display */}
+                  <div className="mt-4 space-y-2">
+                    {/* Step 1: Extract Key & Data */}
+                    <div
+                      className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-300 ${
+                        loadingExtract
+                          ? "bg-gradient-to-r from-cyan-500/20 via-cyan-500/10 to-cyan-500/20 border border-cyan-400/50 animate-pulse"
+                          : decryptedMessage
+                            ? "bg-emerald-500/10 border border-emerald-500/30"
+                            : "bg-slate-800/60 border border-slate-700/30"
+                      }`}
+                    >
+                      <div
+                        className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold flex-shrink-0 ${
+                          loadingExtract
+                            ? "bg-cyan-500 text-white animate-spin-slow shadow-[0_0_15px_rgba(34,211,238,0.6)]"
+                            : decryptedMessage
+                              ? "bg-emerald-500/40 text-emerald-300"
+                              : "bg-slate-600/40 text-slate-400"
+                        }`}
+                      >
+                        {decryptedMessage ? "✓" : "1"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={`text-sm font-semibold truncate ${
+                            loadingExtract
+                              ? "text-cyan-300"
+                              : decryptedMessage
+                                ? "text-emerald-300"
+                                : "text-white"
+                          }`}
+                        >
+                          Extract Key & Data
+                        </p>
+                        <p className="text-slate-400 text-xs truncate">
+                          Parse encrypted message and key from URL
+                        </p>
+                      </div>
+                      {decryptedMessage && (
+                        <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                      )}
+                    </div>
+
+                    {/* Step 2: Decrypt Message */}
+                    <div
+                      className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-300 ${
+                        loadingExtract && decryptedMessage === ""
+                          ? "bg-gradient-to-r from-purple-500/20 via-purple-500/10 to-purple-500/20 border border-purple-400/50 animate-pulse"
+                          : decryptedMessage
+                            ? "bg-emerald-500/10 border border-emerald-500/30"
+                            : "bg-slate-800/60 border border-slate-700/30"
+                      }`}
+                    >
+                      <div
+                        className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold flex-shrink-0 ${
+                          loadingExtract && decryptedMessage === ""
+                            ? "bg-purple-500 text-white animate-spin-slow shadow-[0_0_15px_rgba(168,85,247,0.6)]"
+                            : decryptedMessage
+                              ? "bg-emerald-500/40 text-emerald-300"
+                              : "bg-slate-600/40 text-slate-400"
+                        }`}
+                      >
+                        {decryptedMessage ? "✓" : "2"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={`text-sm font-semibold truncate ${
+                            loadingExtract && decryptedMessage === ""
+                              ? "text-purple-300"
+                              : decryptedMessage
+                                ? "text-emerald-300"
+                                : "text-white"
+                          }`}
+                        >
+                          Decrypt Message
+                        </p>
+                        <p className="text-slate-400 text-xs truncate">
+                          Use extracted key to decrypt the message
+                        </p>
+                      </div>
+                      {decryptedMessage && (
+                        <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={extractAndDecryptFromUrl}
+                    disabled={!pastedUrl || loadingExtract}
+                    className="w-full mt-6 px-4 py-4 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 disabled:from-slate-600 disabled:to-slate-600 text-white font-semibold text-lg rounded-lg transition-all duration-300 hover:shadow-[0_0_30px_rgba(34,211,238,0.4)] disabled:cursor-not-allowed active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    {loadingExtract && (
+                      <Loader className="w-5 h-5 animate-spin" />
+                    )}
+                    {loadingExtract
+                      ? "Processing..."
+                      : decryptedMessage
+                        ? "✓ Decrypted Successfully"
+                        : "Extract & Decrypt"}
+                  </button>
+
+                  {extractKeyError && (
+                    <div className="mt-4 p-4 bg-red-500/10 rounded-lg border border-red-500/30 flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-red-300 text-sm">{extractKeyError}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Tab 2: Manual Input Decryption */}
+            {receiverTab === "manual" && (
+              <div className="space-y-4">
+                {/* Key Input */}
+                <div className="bg-slate-900/60 border border-teal-500/30 rounded-lg p-6 backdrop-blur-sm hover:border-teal-400/60 transition-all duration-300">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-3 bg-teal-500/20 rounded-lg">
+                      <Key className="w-5 h-5 text-teal-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white">
+                      Paste Encryption Key
+                    </h3>
+                  </div>
+
+                  <p className="text-slate-400 text-sm mb-4">
+                    Paste the Base64-encoded encryption key
+                  </p>
+
+                  <textarea
+                    value={manualKey}
+                    onChange={(e) => {
+                      setManualKey(e.target.value);
+                      setManualDecryptError("");
+                    }}
+                    placeholder="Paste key (Base64 format) here..."
+                    className="w-full h-16 px-4 py-3 bg-black/40 border border-teal-500/20 rounded-lg text-white placeholder-slate-500 focus:border-teal-500/50 focus:outline-none transition-colors resize-none font-mono text-xs"
+                  />
+                </div>
+
+                {/* Encrypted Data Input */}
+                <div className="bg-slate-900/60 border border-pink-500/30 rounded-lg p-6 backdrop-blur-sm hover:border-pink-400/60 transition-all duration-300">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-3 bg-pink-500/20 rounded-lg">
+                      <Lock className="w-5 h-5 text-pink-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white">
+                      Paste Encrypted Message
+                    </h3>
+                  </div>
+
+                  <p className="text-slate-400 text-sm mb-4">
+                    Paste the encrypted message in Base64 format
+                  </p>
+
+                  <textarea
+                    value={manualEncryptedData}
+                    onChange={(e) => {
+                      setManualEncryptedData(e.target.value);
+                      setManualDecryptError("");
+                    }}
+                    placeholder="Paste encrypted data (Base64 format) here..."
+                    className={`w-full h-20 px-4 py-3 bg-black/40 border rounded-lg text-white placeholder-slate-500 focus:outline-none transition-colors resize-none font-mono text-xs ${
+                      manualEncryptedData && manualDecryptError
+                        ? "border-red-500/50 focus:border-red-500"
+                        : "border-pink-500/20 focus:border-pink-500/50"
+                    }`}
+                  />
+
+                  {manualEncryptedData && !manualDecryptError && (
+                    <div className="mt-3 p-3 bg-pink-500/10 rounded border border-pink-500/20">
+                      <p className="text-pink-300 text-xs">
+                        ✓ Ready to decrypt
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Decrypt Button */}
+                <button
+                  onClick={decryptMessageManual}
+                  disabled={
+                    !manualKey || !manualEncryptedData || loadingManualDecrypt
+                  }
+                  className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 disabled:from-slate-600 disabled:to-slate-600 text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] disabled:cursor-not-allowed active:scale-95 flex items-center justify-center gap-2"
+                >
+                  {loadingManualDecrypt && (
+                    <Loader className="w-4 h-4 animate-spin" />
+                  )}
+                  {loadingManualDecrypt ? "Decrypting..." : "Decrypt Message"}
+                </button>
+
+                {manualDecryptError && (
+                  <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/30 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-red-300 text-sm">{manualDecryptError}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Decrypted Message Display (Common to both tabs) */}
+            {decryptedMessage && (
+              <div className="space-y-4">
+                <div className="bg-slate-900/60 border border-purple-500/30 rounded-lg p-6 backdrop-blur-sm hover:border-purple-400/60 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-emerald-400" />
+                      Decrypted Message
+                    </h3>
+                  </div>
+
+                  <div className="bg-black/60 p-4 rounded border border-purple-500/20 min-h-24 mb-3">
                     <p className="text-white text-sm whitespace-pre-wrap break-words">
                       {decryptedMessage}
                     </p>
                   </div>
+
                   <button
                     onClick={() =>
                       copyToClipboard(decryptedMessage, "decrypted")
                     }
-                    className="mt-2 flex items-center gap-2 text-purple-400 hover:text-purple-300 text-sm transition-colors hover:bg-purple-500/10 px-3 py-2 rounded-lg"
+                    className="flex items-center gap-2 text-purple-400 hover:text-purple-300 text-sm transition-colors hover:bg-purple-500/10 px-3 py-2 rounded-lg"
                   >
                     <Copy className="w-4 h-4 hover:scale-110 transition-transform" />
                     {copiedField === "decrypted" ? "Copied!" : "Copy Message"}
                   </button>
                 </div>
-              )}
 
-              {decryptedMessage && (
-                <div className="mt-4 p-4 bg-emerald-500/10 rounded-lg border border-emerald-500/30 flex items-start gap-3">
+                <div className="p-4 bg-emerald-500/10 rounded-lg border border-emerald-500/30 flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
                   <p className="text-emerald-300 text-sm font-semibold">
                     Message successfully decrypted!
                   </p>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Status Bar - Receiver */}
             <div className="flex items-center gap-3 p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
