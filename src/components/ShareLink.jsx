@@ -49,15 +49,13 @@ const DualPaneEncryption = () => {
   const [pastedUrl, setPastedUrl] = useState("");
   const [manualKey, setManualKey] = useState("");
   const [manualEncryptedData, setManualEncryptedData] = useState("");
-  const [receiverKey, setReceiverKey] = useState("");
   const [decryptedMessage, setDecryptedMessage] = useState("");
   const [receiverStatus, setReceiverStatus] = useState("Ready");
   const [extractKeyError, setExtractKeyError] = useState("");
-  const [decryptError, setDecryptError] = useState("");
   const [manualDecryptError, setManualDecryptError] = useState("");
   const [loadingExtract, setLoadingExtract] = useState(false);
-  const [loadingDecrypt, setLoadingDecrypt] = useState(false);
   const [loadingManualDecrypt, setLoadingManualDecrypt] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
   const [receiverTab, setReceiverTab] = useState("url"); // "url" or "manual"
 
   // ========== HANDLERS: SENDER SIDE ==========
@@ -184,7 +182,6 @@ const DualPaneEncryption = () => {
       setLoadingExtract(true);
       setReceiverStatus("Step 1: Extracting key and encrypted data...");
       setExtractKeyError("");
-      setDecryptError("");
       setDecryptedMessage("");
 
       // Simulate processing time
@@ -203,7 +200,6 @@ const DualPaneEncryption = () => {
       }
 
       const decodedKey = decodeURIComponent(keyParam);
-      setReceiverKey(decodedKey);
 
       // Now decrypt with the extracted key
       setLoadingExtract(true);
@@ -546,7 +542,6 @@ const DualPaneEncryption = () => {
                   setReceiverTab("url");
                   setDecryptedMessage("");
                   setExtractKeyError("");
-                  setDecryptError("");
                 }}
                 className={`flex-1 px-4 py-3 rounded-md font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
                   receiverTab === "url"
@@ -599,7 +594,6 @@ const DualPaneEncryption = () => {
                       setPastedUrl(e.target.value);
                       setExtractKeyError("");
                       setDecryptedMessage("");
-                      setReceiverKey("");
                     }}
                     placeholder="Paste the shared URL here..."
                     className="w-full h-20 px-4 py-3 bg-black/40 border border-cyan-500/20 rounded-lg text-white placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none transition-colors resize-none font-mono text-xs"
