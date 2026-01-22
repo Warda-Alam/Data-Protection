@@ -55,7 +55,6 @@ const DualPaneEncryption = () => {
   const [manualDecryptError, setManualDecryptError] = useState("");
   const [loadingExtract, setLoadingExtract] = useState(false);
   const [loadingManualDecrypt, setLoadingManualDecrypt] = useState(false);
-  const [loadingStep, setLoadingStep] = useState(0);
   const [receiverTab, setReceiverTab] = useState("url"); // "url" or "manual"
 
   // ========== HANDLERS: SENDER SIDE ==========
